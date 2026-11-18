@@ -1,0 +1,61 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+*.egg-info/
+.pytest_cache/
+
+# ===== 数据（体积大，绝不提交）=====
+# ml/data 有 2.37GB：raw 812MB parquet + processed 1.57GB jpg
+ml/data/
+!ml/data/.gitkeep
+
+# ===== 训练产物 =====
+# 权重文件动辄几十到几百 MB，不提交
+**/*.pt
+**/*.pth
+**/*.onnx
+**/*.npz
+**/*.ckpt
+
+# 冒烟测试的产物，临时性质
+runs_smoke/
+
+# 注意：runs/ 下的 summary.json / history.csv / config.json 要提交
+# 它们是实验记录，报告里的每个数字都要能追溯到某次运行
+
+# ===== 安卓 =====
+app/.gradle/
+app/build/
+app/local.properties
+app/.cxx/
+*.apk
+*.aab
+*.jks
+*.keystore
+app/captures/
+
+# ===== 服务端 =====
+server/*.db
+server/app.db
+server/uploads/
+server/__pycache__/
+.env
+.env.*
+
+# ===== 系统与编辑器 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# ===== 本机临时文件 =====
+# ACL 修复的备份，与项目无关
+_acl-recovery/
+*.log
