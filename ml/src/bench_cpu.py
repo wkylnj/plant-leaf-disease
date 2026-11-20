@@ -1,77 +1,99 @@
-"""本地 CPU 训练速度基准：不训练，只测吞吐，用来决定"本地能跑多大"。
+"""本地 CPU 训练吞吐实测：回答「这台机器能不能训完一个 epoch」。
 
-为什么需要单独测：
-    "CPU 训练慢"是一句没有信息量的话。慢到什么程度、哪个模型慢、
-    慢在数据加载还是慢在前向反向，决定了后续策略完全不同：
-      - 如果慢在数据加载 → 加 num_workers、降分辨率、预先 resize 存盘
-      - 如果慢在前向反向 → 只能减模型规模或减 epoch
-    所以这里分开计时：纯数据加载 vs 纯计算，两者相加才能对上墙钟时间。
+只测前向+反向，不含数据加载（用随机张量），因此结果是乐观上界。
+真实训练会因 JPEG 解码与数据增强更慢。
+
+用法:
+    python ml/src/bench_cpu.py
+    python ml/src/bench_cpu.py --models resnet18,mobilenet_v3_large --img-size 160
 """
-
 from __future__ import annotations
 
+import argparse
 import time
 
 import torch
+import torch.nn as nn
 
-from data import build_dataloaders
 from models import build_model
 
 
-def bench(model_name: str, data_root: str, batch_size: int, num_workers: int, n_batches: int = 20):
+def bench(model_name: str, num_classes: int, img_size: int, batch_size: int, iters: int) -> dict:
     device = torch.device("cpu")
-    torch.set_num_threads(torch.get_num_threads())
+    model, meta = build_model(model_name, num_classes, pretrained=False)
+    model.to(device).train()
+    criterion = nn.CrossEntropyLoss()
 
-    train_loader, _, _, classes = build_dataloaders(
-        data_root, img_size=224, batch_size=batch_size, num_workers=num_workers
-    )
+    x = torch.randn(batch_size, 3, img_size, img_size, device=device)
+    y = torch.randint(0, num_classes, (batch_size,), device=device)
+    opt = torch.optim.AdamW(model.parameters(), lr=1e-4)
 
-    model, meta = build_model(model_name, len(classes), pretrained=True)
-    model.train()
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-
-    # --- 纯数据加载计时：只迭代取数据，不做任何计算 ---
-    t0 = time.time()
-    for i, _ in enumerate(train_loader):
-        if i + 1 >= n_batches:
-            break
-    data_secs = time.time() - t0
-
-    # --- 纯计算计时：数据已经在内存里，只跑前向+反向 ---
-    batches = []
-    for i, (images, labels) in enumerate(train_loader):
-        batches.append((images, labels))
-        if i + 1 >= n_batches:
-            break
-
-    t0 = time.time()
-    for images, labels in batches:
-        optimizer.zero_grad(set_to_none=True)
-        loss = criterion(model(images), labels)
+    # 预热：让 PyTorch 完成算子选择与内存分配
+    for _ in range(2):
+        opt.zero_grad(set_to_none=True)
+        loss = criterion(model(x), y)
         loss.backward()
-        optimizer.step()
-    compute_secs = time.time() - t0
+        opt.step()
 
-    n = len(batches)
-    per_batch = (data_secs + compute_secs) / n
-    imgs_per_sec = batch_size / per_batch
+    n_threads = torch.get_num_threads()
+    t0 = time.perf_counter()
+    for _ in range(iters):
+        opt.zero_grad(set_to_none=True)
+        loss = criterion(model(x), y)
+        loss.backward()
+        opt.step()
+    secs = time.perf_counter() - t0
 
-    print(
-        f"{model_name:22s} params={meta.params_m:6.2f}M  "
-        f"data={data_secs/n:5.2f}s/b  compute={compute_secs/n:5.2f}s/b  "
-        f"合计={per_batch:5.2f}s/b  {imgs_per_sec:6.1f} img/s"
-    )
-    return imgs_per_sec
+    imgs_per_sec = iters * batch_size / secs
+    return {
+        "model": model_name,
+        "params_m": meta.params_m,
+        "img_size": img_size,
+        "batch_size": batch_size,
+        "threads": n_threads,
+        "imgs_per_sec": round(imgs_per_sec, 1),
+        "secs_per_iter": round(secs / iters, 3),
+        "min_per_epoch_39k": round(39170 / imgs_per_sec / 60, 1),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="CPU 训练吞吐实测")
+    parser.add_argument("--models", default="resnet18,mobilenet_v3_large")
+    parser.add_argument("--img-size", type=int, default=224)
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--iters", type=int, default=3)
+    parser.add_argument("--num-classes", type=int, default=38)
+    parser.add_argument("--threads", type=int, default=0, help="0 表示用默认线程数")
+    args = parser.parse_args()
+
+    if args.threads > 0:
+        torch.set_num_threads(args.threads)
+
+    print(f"torch {torch.__version__}  默认线程数 {torch.get_num_threads()}")
+    print(f"图像尺寸 {args.img_size}  batch {args.batch_size}  迭代 {args.iters}")
+    print("")
+    header = f"{'model':22s} {'params':>8s} {'img/s':>9s} {'min/epoch':>10s}"
+    print(header)
+    print("-" * len(header))
+
+    results = []
+    for name in [m.strip() for m in args.models.split(",") if m.strip()]:
+        try:
+            r = bench(name, args.num_classes, args.img_size, args.batch_size, args.iters)
+        except Exception as exc:  # noqa: BLE001 - 单个模型失败不影响其余
+            print(f"{name:22s} 失败: {exc}")
+            continue
+        results.append(r)
+        print(f"{name:22s} {r['params_m']:7.1f}M {r['imgs_per_sec']:9.1f} {r['min_per_epoch_39k']:10.1f}")
+
+    if results:
+        print("")
+        print("注：min/epoch 按训练集 39170 张估算，且不含数据加载开销，是乐观下界。")
+        fastest = min(results, key=lambda r: r["min_per_epoch_39k"])
+        print(f"最快: {fastest['model']}  约 {fastest['min_per_epoch_39k']} 分钟/epoch")
+    return 0
 
 
 if __name__ == "__main__":
-    import sys
-
-    data_root = sys.argv[1] if len(sys.argv) > 1 else "data/processed/plantvillage"
-    print(f"threads={torch.get_num_threads()}")
-    print(f"数据: {data_root}")
-    print()
-
-    for name in ["resnet18", "mobilenet_v3_large", "shufflenet_v2_x1_0", "resnet50"]:
-        bench(name, data_root, batch_size=32, num_workers=4, n_batches=12)
+    raise SystemExit(main())
