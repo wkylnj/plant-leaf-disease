@@ -1,0 +1,28 @@
+{
+  "total": 54381,
+  "per_split": {
+    "train": 39170,
+    "val": 4333,
+    "test": 10878
+  },
+  "num_classes": 38,
+  "imbalance_ratio": 36.055,
+  "majority_baseline_acc": 0.1013,
+  "min_class": {
+    "name": "22_Potato_healthy",
+    "count": 110
+  },
+  "max_class": {
+    "name": "15_Orange_Haunglongbing_Citrus_greening",
+    "count": 3966
+  },
+  "modes": {
+    "RGB": 400
+  },
+  "sizes": [
+    [
+      256,
+      256
+    ]
+  ]
+}

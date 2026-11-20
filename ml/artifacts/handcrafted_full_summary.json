@@ -1,0 +1,77 @@
+{
+  "features": [
+    "color",
+    "glcm",
+    "gabor"
+  ],
+  "img_size": 224,
+  "feature_dim": 162,
+  "train_size": 39170,
+  "test_size": 10878,
+  "accuracy": 0.921677,
+  "macro_f1": 0.904314,
+  "feature_secs": 1557.3,
+  "train_secs": 7.7,
+  "per_class_f1": {
+    "00_Apple_Apple_scab": 0.8125,
+    "01_Apple_Black_rot": 0.9354,
+    "02_Apple_Cedar_apple_rust": 0.8293,
+    "03_Apple_healthy": 0.9063,
+    "04_Blueberry_healthy": 0.9705,
+    "05_Cherry_including_sour_Powdery_mildew": 0.8986,
+    "06_Cherry_including_sour_healthy": 0.9589,
+    "07_Corn_maize_Cercospora_leaf_spot_Gray_leaf_spot": 0.8774,
+    "08_Corn_maize_Common_rust": 0.9937,
+    "09_Corn_maize_Northern_Leaf_Blight": 0.9203,
+    "10_Corn_maize_healthy": 0.9892,
+    "11_Grape_Black_rot": 0.8607,
+    "12_Grape_Esca_Black_Measles": 0.9022,
+    "13_Grape_Leaf_blight_Isariopsis_Leaf_Spot": 0.9673,
+    "14_Grape_healthy": 0.8939,
+    "15_Orange_Haunglongbing_Citrus_greening": 0.9804,
+    "16_Peach_Bacterial_spot": 0.8814,
+    "17_Peach_healthy": 0.9333,
+    "18_Pepper_bell_Bacterial_spot": 0.9073,
+    "19_Pepper_bell_healthy": 0.9291,
+    "20_Potato_Early_blight": 0.9628,
+    "21_Potato_Late_blight": 0.7608,
+    "22_Potato_healthy": 0.7013,
+    "23_Raspberry_healthy": 0.9193,
+    "24_Soybean_healthy": 0.9611,
+    "25_Squash_Powdery_mildew": 0.97,
+    "26_Strawberry_Leaf_scorch": 0.955,
+    "27_Strawberry_healthy": 0.9158,
+    "28_Tomato_Bacterial_spot": 0.9114,
+    "29_Tomato_Early_blight": 0.7707,
+    "30_Tomato_Late_blight": 0.7887,
+    "31_Tomato_Leaf_Mold": 0.9073,
+    "32_Tomato_Septoria_leaf_spot": 0.8639,
+    "33_Tomato_Spider_mites_Two_spotted_spider_mite": 0.9048,
+    "34_Tomato_Target_Spot": 0.8913,
+    "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus": 0.9412,
+    "36_Tomato_Tomato_mosaic_virus": 0.9161,
+    "37_Tomato_healthy": 0.975
+  },
+  "hardest": [
+    {
+      "class": "22_Potato_healthy",
+      "f1": 0.7013
+    },
+    {
+      "class": "21_Potato_Late_blight",
+      "f1": 0.7608
+    },
+    {
+      "class": "29_Tomato_Early_blight",
+      "f1": 0.7707
+    },
+    {
+      "class": "30_Tomato_Late_blight",
+      "f1": 0.7887
+    },
+    {
+      "class": "00_Apple_Apple_scab",
+      "f1": 0.8125
+    }
+  ]
+}
