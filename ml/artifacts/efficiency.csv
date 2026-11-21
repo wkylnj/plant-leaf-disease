@@ -1,0 +1,7 @@
+model,family,params_m,flops_g,img_size,batch_size,threads,latency_ms_mean,latency_ms_median,latency_ms_std,latency_ms_min,latency_ms_max,img_per_s
+resnet18,CNN,11.196,7.254,224,1,8,16.835,16.749,0.884,15.358,18.68,59.705
+resnet50,CNN,23.586,16.349,224,1,8,45.8,42.911,7.254,39.543,63.888,23.304
+mobilenet_v3_large,轻量CNN,4.251,0.861,224,1,8,13.776,13.648,0.988,12.219,15.93,73.273
+shufflenet_v2_x1_0,轻量CNN,1.293,0.576,224,1,8,12.399,12.554,1.468,9.948,14.942,79.656
+efficientnet_b0,轻量CNN,4.056,1.538,224,1,8,17.903,17.873,1.225,14.735,19.647,55.951
+swin_t,Transformer,27.549,17.959,224,1,8,53.951,53.76,0.949,52.424,55.767,18.601
