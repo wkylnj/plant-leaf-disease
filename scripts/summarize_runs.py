@@ -42,7 +42,11 @@ FIELDS = [
 
 
 def load_runs(runs_dir: Path) -> list[dict]:
-    """读每个 run 目录下的 summary.json。"""
+    """读每个 run 目录下的 summary.json。
+
+    若只有 summary_eval.json（训练被中断、只拉回 best.pt 后本地补测的情况），
+    用它兜底，并把 missing 字段留给 fmt 显示为 —。
+    """
     rows = []
     if not runs_dir.exists():
         return rows
@@ -50,14 +54,30 @@ def load_runs(runs_dir: Path) -> list[dict]:
         if not d.is_dir():
             continue
         sj = d / "summary.json"
-        if not sj.exists():
+        ej = d / "summary_eval.json"
+        src = sj if sj.exists() else (ej if ej.exists() else None)
+        if src is None:
             continue
         try:
-            data = json.loads(sj.read_text(encoding="utf-8"))
+            data = json.loads(src.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as e:
-            print(f"跳过 {d.name}：summary.json 读不了（{e}）")
+            print(f"跳过 {d.name}：{src.name} 读不了（{e}）")
             continue
         data["run_name"] = d.name
+        # 只有补测结果时，把 checkpoint 的轮次/超参从 config.json 补进来
+        if src is ej:
+            cfg = d / "config.json"
+            if cfg.exists():
+                try:
+                    c = json.loads(cfg.read_text(encoding="utf-8"))
+                    for k in ("epochs", "strong_aug", "model"):
+                        data.setdefault(k, c.get(k))
+                    if "pretrained" not in data and "no_pretrained" in c:
+                        data["pretrained"] = not c["no_pretrained"]
+                except (json.JSONDecodeError, OSError):
+                    pass
+            data["best_val_acc"] = data.get("ckpt_val_acc")
+            data["eval_note"] = "补测"
         # 用 history.csv 的最后一轮秒数算每轮平均耗时
         hist = d / "history.csv"
         if hist.exists():

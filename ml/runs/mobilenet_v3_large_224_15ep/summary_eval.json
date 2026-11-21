@@ -1,0 +1,14 @@
+{
+  "model": "mobilenet_v3_large",
+  "params_m": 4.251,
+  "img_size": 224,
+  "split": "test",
+  "n_samples": 10878,
+  "ckpt_epoch": 9,
+  "ckpt_val_acc": 0.9960919540229886,
+  "test_acc": 0.9947600661886377,
+  "test_macro_f1": 0.9933696112567494,
+  "eval_secs": 218.8,
+  "img_per_s": 49.7,
+  "note": "由 eval_ckpt.py 从 best.pt 补测，非训练时自动产出"
+}
