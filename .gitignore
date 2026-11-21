@@ -67,3 +67,6 @@ desktop.ini
 # ACL 修复的备份，与项目无关
 _acl-recovery/
 *.log
+
+# Grad-CAM per-sample overlays (grid.png is tracked, individual overlays are not)
+**/gradcam/overlay_*.png

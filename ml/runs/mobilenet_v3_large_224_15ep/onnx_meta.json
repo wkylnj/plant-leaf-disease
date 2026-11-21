@@ -1,0 +1,25 @@
+{
+  "model": "mobilenet_v3_large",
+  "ckpt_epoch": 9,
+  "ckpt_val_acc": 0.9960919540229886,
+  "num_classes": 38,
+  "img_size": 224,
+  "opset": 17,
+  "size_mb": 16.99,
+  "export_seconds": 0.74,
+  "torch_version": "2.6.0+cpu",
+  "verified": true,
+  "max_abs_diff": 3.5762786865234375e-06,
+  "argmax_match": true,
+  "input_name": "input",
+  "output_names": [
+    "logits"
+  ],
+  "batch_shape": [
+    "batch",
+    3,
+    224,
+    224
+  ],
+  "passed": true
+}

@@ -1,0 +1,25 @@
+{
+  "model": "resnet18",
+  "ckpt_epoch": 11,
+  "ckpt_val_acc": 0.9954022988505747,
+  "num_classes": 38,
+  "img_size": 224,
+  "opset": 17,
+  "size_mb": 44.77,
+  "export_seconds": 1.12,
+  "torch_version": "2.6.0+cpu",
+  "verified": true,
+  "max_abs_diff": 1.3709068298339844e-06,
+  "argmax_match": true,
+  "input_name": "input",
+  "output_names": [
+    "logits"
+  ],
+  "batch_shape": [
+    "batch",
+    3,
+    224,
+    224
+  ],
+  "passed": true
+}
