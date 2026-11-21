@@ -29,10 +29,13 @@ runs_smoke/
 # 它们是实验记录，报告里的每个数字都要能追溯到某次运行
 
 # ===== 安卓 =====
+# 注意：Gradle 根目录在 app/ 下，模块也叫 app，所以构建产物实际在 app/app/build/
 app/.gradle/
 app/build/
-app/local.properties
+app/app/build/
+app/.kotlin/
 app/.cxx/
+app/local.properties
 *.apk
 *.aab
 *.jks
@@ -42,6 +45,9 @@ app/captures/
 # ===== 服务端 =====
 server/*.db
 server/app.db
+# SQLite WAL 模式的临时文件，每次开关服务都会变，不该进版本库
+server/*.db-shm
+server/*.db-wal
 server/uploads/
 server/__pycache__/
 .env

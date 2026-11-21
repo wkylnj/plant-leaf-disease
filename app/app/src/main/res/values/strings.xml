@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">叶片医生</string>
+    <string name="tagline">拍一张叶片照片，看看它得了什么病</string>
+
+    <string name="btn_camera">拍照识别</string>
+    <string name="btn_gallery">从相册选择</string>
+    <string name="btn_retry">重新拍一张</string>
+    <string name="btn_health">检查服务</string>
+
+    <string name="label_result">识别结果</string>
+    <string name="label_top3">其他可能</string>
+    <string name="label_feedback">这个结果对吗？</string>
+    <string name="feedback_yes">对的</string>
+    <string name="feedback_no">不对</string>
+    <string name="feedback_thanks">感谢反馈</string>
+
+    <string name="state_idle">还没有图片</string>
+    <string name="state_uploading">正在上传…</string>
+    <string name="state_thinking">正在识别…</string>
+    <string name="state_error">出错了</string>
+
+    <string name="disclaimer">本应用仅用于课程演示，结果仅供参考，不能替代专业植保诊断。</string>
+</resources>
