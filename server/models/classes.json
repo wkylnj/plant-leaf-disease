@@ -1,0 +1,192 @@
+[
+  {
+    "index": 0,
+    "folder": "00_Apple_Apple_scab",
+    "name": "Apple__Apple_scab"
+  },
+  {
+    "index": 1,
+    "folder": "01_Apple_Black_rot",
+    "name": "Apple__Black_rot"
+  },
+  {
+    "index": 2,
+    "folder": "02_Apple_Cedar_apple_rust",
+    "name": "Apple__Cedar_apple_rust"
+  },
+  {
+    "index": 3,
+    "folder": "03_Apple_healthy",
+    "name": "Apple___healthy"
+  },
+  {
+    "index": 4,
+    "folder": "04_Blueberry_healthy",
+    "name": "Blueberry___healthy"
+  },
+  {
+    "index": 5,
+    "folder": "05_Cherry_including_sour_Powdery_mildew",
+    "name": "Cherry_(including_sour)___Powdery_mildew"
+  },
+  {
+    "index": 6,
+    "folder": "06_Cherry_including_sour_healthy",
+    "name": "Cherry_(including_sour)___healthy"
+  },
+  {
+    "index": 7,
+    "folder": "07_Corn_maize_Cercospora_leaf_spot_Gray_leaf_spot",
+    "name": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot"
+  },
+  {
+    "index": 8,
+    "folder": "08_Corn_maize_Common_rust",
+    "name": "Corn_(maize)___Common_rust_"
+  },
+  {
+    "index": 9,
+    "folder": "09_Corn_maize_Northern_Leaf_Blight",
+    "name": "Corn_(maize)___Northern_Leaf_Blight"
+  },
+  {
+    "index": 10,
+    "folder": "10_Corn_maize_healthy",
+    "name": "Corn_(maize)___healthy"
+  },
+  {
+    "index": 11,
+    "folder": "11_Grape_Black_rot",
+    "name": "Grape___Black_rot"
+  },
+  {
+    "index": 12,
+    "folder": "12_Grape_Esca_Black_Measles",
+    "name": "Grape___Esca_(Black_Measles)"
+  },
+  {
+    "index": 13,
+    "folder": "13_Grape_Leaf_blight_Isariopsis_Leaf_Spot",
+    "name": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)"
+  },
+  {
+    "index": 14,
+    "folder": "14_Grape_healthy",
+    "name": "Grape___healthy"
+  },
+  {
+    "index": 15,
+    "folder": "15_Orange_Haunglongbing_Citrus_greening",
+    "name": "Orange___Haunglongbing_(Citrus_greening)"
+  },
+  {
+    "index": 16,
+    "folder": "16_Peach_Bacterial_spot",
+    "name": "Peach___Bacterial_spot"
+  },
+  {
+    "index": 17,
+    "folder": "17_Peach_healthy",
+    "name": "Peach___healthy"
+  },
+  {
+    "index": 18,
+    "folder": "18_Pepper_bell_Bacterial_spot",
+    "name": "Pepper,_bell___Bacterial_spot"
+  },
+  {
+    "index": 19,
+    "folder": "19_Pepper_bell_healthy",
+    "name": "Pepper,_bell___healthy"
+  },
+  {
+    "index": 20,
+    "folder": "20_Potato_Early_blight",
+    "name": "Potato___Early_blight"
+  },
+  {
+    "index": 21,
+    "folder": "21_Potato_Late_blight",
+    "name": "Potato___Late_blight"
+  },
+  {
+    "index": 22,
+    "folder": "22_Potato_healthy",
+    "name": "Potato___healthy"
+  },
+  {
+    "index": 23,
+    "folder": "23_Raspberry_healthy",
+    "name": "Raspberry___healthy"
+  },
+  {
+    "index": 24,
+    "folder": "24_Soybean_healthy",
+    "name": "Soybean___healthy"
+  },
+  {
+    "index": 25,
+    "folder": "25_Squash_Powdery_mildew",
+    "name": "Squash___Powdery_mildew"
+  },
+  {
+    "index": 26,
+    "folder": "26_Strawberry_Leaf_scorch",
+    "name": "Strawberry___Leaf_scorch"
+  },
+  {
+    "index": 27,
+    "folder": "27_Strawberry_healthy",
+    "name": "Strawberry___healthy"
+  },
+  {
+    "index": 28,
+    "folder": "28_Tomato_Bacterial_spot",
+    "name": "Tomato___Bacterial_spot"
+  },
+  {
+    "index": 29,
+    "folder": "29_Tomato_Early_blight",
+    "name": "Tomato___Early_blight"
+  },
+  {
+    "index": 30,
+    "folder": "30_Tomato_Late_blight",
+    "name": "Tomato___Late_blight"
+  },
+  {
+    "index": 31,
+    "folder": "31_Tomato_Leaf_Mold",
+    "name": "Tomato___Leaf_Mold"
+  },
+  {
+    "index": 32,
+    "folder": "32_Tomato_Septoria_leaf_spot",
+    "name": "Tomato___Septoria_leaf_spot"
+  },
+  {
+    "index": 33,
+    "folder": "33_Tomato_Spider_mites_Two_spotted_spider_mite",
+    "name": "Tomato___Spider_mites Two-spotted_spider_mite"
+  },
+  {
+    "index": 34,
+    "folder": "34_Tomato_Target_Spot",
+    "name": "Tomato___Target_Spot"
+  },
+  {
+    "index": 35,
+    "folder": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+    "name": "Tomato___Tomato_Yellow_Leaf_Curl_Virus"
+  },
+  {
+    "index": 36,
+    "folder": "36_Tomato_Tomato_mosaic_virus",
+    "name": "Tomato___Tomato_mosaic_virus"
+  },
+  {
+    "index": 37,
+    "folder": "37_Tomato_healthy",
+    "name": "Tomato___healthy"
+  }
+]
