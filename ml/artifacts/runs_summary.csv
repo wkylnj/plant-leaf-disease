@@ -1,0 +1,2 @@
+run_name,model,params_m,img_size,epochs,pretrained,strong_aug,best_val_acc,test_acc,test_macro_f1,test_loss,onnx_max_diff,secs_per_epoch
+resnet18_224_15ep,resnet18,11.196,224,15,True,True,0.995402,0.994117,0.991627,0.711573,,344.6

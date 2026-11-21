@@ -31,15 +31,32 @@ REMOTE_RUNS = "/content/runs"
 
 
 def run(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
-    """跑一条命令，实时打印。"""
+    """跑一条命令，实时打印（输出直通终端，不捕获）。"""
     print(f"$ {' '.join(cmd)}", flush=True)
     return subprocess.run(cmd, check=check, text=True, encoding="utf-8", errors="replace")
 
 
+def capture(cmd: list[str], check: bool = False) -> subprocess.CompletedProcess:
+    """跑一条命令并捕获输出（需要解析结果时用）。
+
+    注意：不能复用 run() —— 它没有 capture_output=True，
+    p.stdout 永远是 None，解析会静默得到空列表。
+    """
+    return subprocess.run(
+        cmd,
+        check=check,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
 def list_remote_runs(session: str) -> list[str]:
     """列出远端有哪些 run 目录。"""
-    p = run(["colab", "ls", "-s", session, REMOTE_RUNS], check=False)
+    p = capture(["colab", "ls", "-s", session, REMOTE_RUNS])
     if p.returncode != 0:
+        print("列目录失败：", (p.stderr or "")[-400:])
         return []
     names = []
     for line in (p.stdout or "").splitlines():
@@ -49,16 +66,46 @@ def list_remote_runs(session: str) -> list[str]:
     return names
 
 
+def exec_code(code: str, session: str, timeout: int = 600) -> tuple[int, str]:
+    """在远端 kernel 里执行一段 Python 代码。
+
+    注意：`colab exec` 不接受位置参数传代码，必须从 stdin 送入
+    （`colab exec -s <session>` + stdin）。写成 `colab exec -s x "cd ..."` 会报
+    `Got unexpected extra argument(s)`。
+    """
+    p = subprocess.run(
+        ["colab", "exec", "-s", session, "--timeout", "120"],
+        input=code,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+    )
+    return p.returncode, (p.stdout or "") + (p.stderr or "")
+
+
 def pack_remote(session: str, run_name: str, skip_weights: bool) -> str:
     """远端打包，返回远端 tar 路径。"""
     tar_remote = f"/content/{run_name}.tar.gz"
     # --exclude 用通配，跳过权重能省几百 MB
     excludes = " --exclude='*.pt'" if skip_weights else ""
-    cmd = (
+    shell = (
         f"cd {REMOTE_RUNS} && tar -czf {tar_remote}{excludes} {run_name} "
         f"&& ls -lh {tar_remote}"
     )
-    run(["colab", "exec", "-s", session, cmd])
+    # 用 subprocess 在远端 shell 里跑，避免自己拼引号
+    code = f"""
+import subprocess
+p = subprocess.run({shell!r}, shell=True, capture_output=True, text=True)
+print(p.stdout[-1500:])
+print(p.stderr[-1500:])
+print('RC', p.returncode)
+"""
+    rc, out = exec_code(code, session)
+    print(out.strip()[-800:])
+    if "RC 0" not in out:
+        raise RuntimeError(f"远端打包失败：{run_name}")
     return tar_remote
 
 

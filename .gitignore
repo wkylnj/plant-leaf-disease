@@ -31,6 +31,8 @@ runs_smoke/
 # ===== 安卓 =====
 # 注意：Gradle 根目录在 app/ 下，模块也叫 app，所以构建产物实际在 app/app/build/
 app/.gradle/
+# 在 app/ 目录下跑 gradle 时，有时会在仓库根留下一份 .gradle/
+/.gradle/
 app/build/
 app/app/build/
 app/.kotlin/

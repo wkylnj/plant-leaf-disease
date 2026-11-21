@@ -1,0 +1,21 @@
+{
+  "model": "resnet18",
+  "epochs": 15,
+  "img_size": 224,
+  "batch_size": 64,
+  "lr": 0.0003,
+  "weight_decay": 0.05,
+  "label_smoothing": 0.1,
+  "warmup_epochs": 2,
+  "num_workers": 2,
+  "seed": 42,
+  "strong_aug": true,
+  "data_root": "/content/data/plantvillage",
+  "out_dir": "/content/runs",
+  "run_name": "resnet18_224_15ep",
+  "limit_batches": 0,
+  "bench": 0,
+  "export_onnx": true,
+  "no_pretrained": false,
+  "prepare_only": false
+}
