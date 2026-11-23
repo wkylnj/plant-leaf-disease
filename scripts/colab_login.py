@@ -21,6 +21,7 @@ Google 只授予那几个基础权限（openid / userinfo.email / userinfo.profi
 import json
 import os
 import sys
+import time
 from importlib import resources
 from pathlib import Path
 
@@ -94,9 +95,31 @@ def main() -> int:
     print("        （授权码只能用一次，且约 10 分钟内有效）")
     print("=" * 72 + "\n")
 
-    code = input("授权码: ").strip()
+    # 授权码来源：
+    #   1) --code 直接传（一次性，便于脚本化）
+    #   2) --code-file 轮询文件（进程常驻等用户把码写进文件，适合后台跑）
+    #   3) 交互输入（默认，人工在终端里粘贴）
+    # 之所以要 2)：code_verifier 只存在本进程内存里，进程一退出链接就作废，
+    # 所以必须让同一个进程活着等授权码，不能"打印链接→退出→下次再输入码"。
+    code = ""
+    if "--code" in sys.argv:
+        code = sys.argv[sys.argv.index("--code") + 1].strip()
+    elif "--code-file" in sys.argv:
+        cf = Path(sys.argv[sys.argv.index("--code-file") + 1])
+        print(f"等待授权码写入文件: {cf}")
+        print("（最多等 15 分钟，把浏览器显示的授权码整行写进该文件即可）\n")
+        deadline = time.time() + 15 * 60
+        while time.time() < deadline:
+            if cf.exists():
+                code = cf.read_text(encoding="utf-8").strip()
+                if code:
+                    break
+            time.sleep(2)
+    else:
+        code = input("授权码: ").strip()
+
     if not code:
-        print("\n[错误] 没有输入授权码。", file=sys.stderr)
+        print("\n[错误] 没有拿到授权码（超时或为空）。", file=sys.stderr)
         return 1
 
     try:

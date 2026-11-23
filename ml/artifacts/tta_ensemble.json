@@ -1,0 +1,91 @@
+{
+  "views": [
+    "none",
+    "hflip",
+    "vflip",
+    "hvflip"
+  ],
+  "runs": [
+    {
+      "run": "mobilenet_v3_large_224_15ep",
+      "model": "mobilenet_v3_large",
+      "ckpt_epoch": 9,
+      "ckpt_val_acc": 0.9960919540229886,
+      "same_domain_baseline": {
+        "n": 10878,
+        "top1_acc": 0.9947600661886377,
+        "top3_acc": 0.9998161426732856,
+        "mean_conf": 0.8956193327903748
+      },
+      "same_domain_tta": {
+        "n": 10878,
+        "top1_acc": 0.9948519948519948,
+        "top3_acc": 0.9998161426732856,
+        "mean_conf": 0.895217776298523
+      },
+      "cross_domain_baseline": {
+        "n": 2920,
+        "top1_acc": 0.2582191780821918,
+        "top3_acc": 0.4575342465753425,
+        "mean_conf": 0.419277161359787,
+        "crop_acc": 0.5195205479452055
+      },
+      "cross_domain_tta": {
+        "n": 2920,
+        "top1_acc": 0.2582191780821918,
+        "top3_acc": 0.45993150684931505,
+        "mean_conf": 0.4128090739250183,
+        "crop_acc": 0.5226027397260274
+      }
+    },
+    {
+      "run": "resnet18_224_15ep",
+      "model": "resnet18",
+      "ckpt_epoch": 11,
+      "ckpt_val_acc": 0.9954022988505747,
+      "same_domain_baseline": {
+        "n": 10878,
+        "top1_acc": 0.9941165655451369,
+        "top3_acc": 0.9997242140099283,
+        "mean_conf": 0.8885452747344971
+      },
+      "same_domain_tta": {
+        "n": 10878,
+        "top1_acc": 0.9939327082184225,
+        "top3_acc": 0.9997242140099283,
+        "mean_conf": 0.8869243264198303
+      },
+      "cross_domain_baseline": {
+        "n": 2920,
+        "top1_acc": 0.28184931506849314,
+        "top3_acc": 0.49006849315068496,
+        "mean_conf": 0.436558336019516,
+        "crop_acc": 0.5113013698630137
+      },
+      "cross_domain_tta": {
+        "n": 2920,
+        "top1_acc": 0.2825342465753425,
+        "top3_acc": 0.4952054794520548,
+        "mean_conf": 0.42120495438575745,
+        "crop_acc": 0.5154109589041096
+      }
+    }
+  ],
+  "same_domain": {
+    "ensemble": {
+      "n": 10878,
+      "top1_acc": 0.996506710792425,
+      "top3_acc": 0.9999080713366427,
+      "mean_conf": 0.8905350565910339
+    }
+  },
+  "cross_domain": {
+    "ensemble": {
+      "n": 2920,
+      "top1_acc": 0.2910958904109589,
+      "top3_acc": 0.5051369863013698,
+      "mean_conf": 0.3846605718135834,
+      "crop_acc": 0.5472602739726027
+    }
+  }
+}

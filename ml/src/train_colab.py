@@ -44,6 +44,7 @@ DEFAULTS = {
     "num_workers": 2,
     "seed": 42,
     "strong_aug": True,
+    "da_aug": False,         # 域适应增强：模拟田间拍摄的光照/色彩/背景差异
     "data_root": "/content/data/plantvillage",
     "out_dir": "/content/runs",
     "run_name": "",          # 空则自动用 模型名_时间戳
@@ -235,7 +236,7 @@ def download_and_prepare(data_root: str, limit_per_class: int = 0) -> Path:
 
 
 # ---------------------------------------------------------------- transform
-def build_transforms(img_size: int, train: bool, strong: bool = True):
+def build_transforms(img_size: int, train: bool, strong: bool = True, da: bool = False):
     from torchvision import transforms as T
 
     if not train:
@@ -258,8 +259,28 @@ def build_transforms(img_size: int, train: bool, strong: bool = True):
             T.RandAugment(num_ops=2, magnitude=9),
             T.ColorJitter(0.3, 0.3, 0.3, 0.05),
         ]
+
+    # ---- 域适应增强（E2 跨域 28% 的直接对策）----
+    # 跨域崩溃的根因（见 ml/artifacts/gradcam.md 与 crossdomain.md）：
+    # 模型依赖的是整片叶子的全局颜色/纹理统计量，而 PlantDoc 真实照片的
+    # 光照、色温、对比度、背景与 PlantVillage 实验室摆拍差异巨大。
+    # 这里刻意把「成像条件」当成干扰因素去扰动，强迫模型只依赖与成像无关的
+    # 形态特征（病斑形状、叶脉纹理）。四项针对性扰动：
+    #   1) 强色彩抖动：模拟不同设备白平衡、阴天/晴天色温
+    #   2) 随机灰度：模拟单色/低饱和拍摄，切断"靠颜色分类"的捷径
+    #   3) 高斯模糊：模拟对焦不准、手机近距离拍摄
+    #   4) 亮度/对比度大范围：模拟逆光、阴影、曝光不足
+    if da:
+        ops += [
+            T.ColorJitter(brightness=0.6, contrast=0.6, saturation=0.6, hue=0.15),
+            T.RandomGrayscale(p=0.15),
+            T.RandomApply([T.GaussianBlur(kernel_size=5, sigma=(0.1, 2.0))], p=0.3),
+            T.RandomAutocontrast(p=0.2),
+            T.RandomEqualize(p=0.2),
+        ]
+
     ops += [T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
-    if strong:
+    if strong or da:
         ops.append(T.RandomErasing(p=0.25, scale=(0.02, 0.15)))
     return T.Compose(ops)
 
@@ -388,7 +409,10 @@ def main():
     num_classes = len(classes)
     log(f"类别数 {num_classes}")
 
-    train_ds = ImageFolder(str(data_root / "train"), transform=build_transforms(args.img_size, True, args.strong_aug))
+    train_ds = ImageFolder(
+        str(data_root / "train"),
+        transform=build_transforms(args.img_size, True, args.strong_aug, args.da_aug),
+    )
     val_ds = ImageFolder(str(data_root / "val"), transform=build_transforms(args.img_size, False))
     test_ds = ImageFolder(str(data_root / "test"), transform=build_transforms(args.img_size, False))
     assert train_ds.classes == val_ds.classes == test_ds.classes, "三个 split 的类别不一致"
@@ -575,6 +599,7 @@ def main():
         "epochs": args.epochs,
         "pretrained": not args.no_pretrained,
         "strong_aug": args.strong_aug,
+        "da_aug": args.da_aug,
         "best_val_acc": round(best_acc, 6),
         "test_loss": round(test["loss"], 6),
         "test_acc": round(test["acc"], 6),
