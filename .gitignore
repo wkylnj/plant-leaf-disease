@@ -70,3 +70,10 @@ _acl-recovery/
 
 # Grad-CAM per-sample overlays (grid.png is tracked, individual overlays are not)
 **/gradcam/overlay_*.png
+
+# ===== Kaggle 产物下载的临时目录 =====
+_kaggle_out/
+# Kaggle OAuth 凭据与本地登录脚本的临时文件
+_colab_code.txt
+_colab_login*.log
+_colab_login*.err
