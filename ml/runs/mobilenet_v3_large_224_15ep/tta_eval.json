@@ -1,0 +1,32 @@
+{
+  "run": "mobilenet_v3_large_224_15ep",
+  "model": "mobilenet_v3_large",
+  "ckpt_epoch": 9,
+  "ckpt_val_acc": 0.9960919540229886,
+  "same_domain_baseline": {
+    "n": 10878,
+    "top1_acc": 0.9947600661886377,
+    "top3_acc": 0.9998161426732856,
+    "mean_conf": 0.8956193327903748
+  },
+  "same_domain_tta": {
+    "n": 10878,
+    "top1_acc": 0.9948519948519948,
+    "top3_acc": 0.9998161426732856,
+    "mean_conf": 0.895217776298523
+  },
+  "cross_domain_baseline": {
+    "n": 2920,
+    "top1_acc": 0.2582191780821918,
+    "top3_acc": 0.4575342465753425,
+    "mean_conf": 0.419277161359787,
+    "crop_acc": 0.5195205479452055
+  },
+  "cross_domain_tta": {
+    "n": 2920,
+    "top1_acc": 0.2582191780821918,
+    "top3_acc": 0.45993150684931505,
+    "mean_conf": 0.4128090739250183,
+    "crop_acc": 0.5226027397260274
+  }
+}
