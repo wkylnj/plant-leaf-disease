@@ -1,3 +1,5 @@
 run_name,model,params_m,img_size,epochs,pretrained,strong_aug,best_val_acc,test_acc,test_macro_f1,test_loss,onnx_max_diff,secs_per_epoch
 mobilenet_v3_large_224_15ep,mobilenet_v3_large,4.251,224,15,True,True,0.9960919540229886,0.9947600661886377,0.9933696112567494,,,
+mobilenet_v3_large_daaug_224_15ep,mobilenet_v3_large,4.251,224,15,True,True,0.994023,0.990899,0.987782,0.71808,,291.3
 resnet18_224_15ep,resnet18,11.196,224,15,True,True,0.995402,0.994117,0.991627,0.711573,,344.6
+swin_t_224_15ep,swin_t,27.549,224,15,True,True,0.996092,0.996231,0.995568,0.685404,,272.0

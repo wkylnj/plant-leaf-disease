@@ -1,0 +1,17 @@
+{
+  "model": "mobilenet_v3_large",
+  "params_m": 4.251,
+  "img_size": 224,
+  "seed": 42,
+  "epochs": 15,
+  "pretrained": true,
+  "strong_aug": true,
+  "da_aug": true,
+  "best_val_acc": 0.994023,
+  "test_loss": 0.71808,
+  "test_acc": 0.990899,
+  "test_macro_f1": 0.987782,
+  "n_train": 39153,
+  "n_val": 4350,
+  "n_test": 10878
+}

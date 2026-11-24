@@ -1,0 +1,22 @@
+{
+  "model": "swin_t",
+  "epochs": 15,
+  "img_size": 224,
+  "batch_size": 32,
+  "lr": 0.0002,
+  "weight_decay": 0.05,
+  "label_smoothing": 0.1,
+  "warmup_epochs": 2,
+  "num_workers": 2,
+  "seed": 42,
+  "strong_aug": true,
+  "da_aug": false,
+  "data_root": "/kaggle/working/data/plantvillage",
+  "out_dir": "/kaggle/working/runs",
+  "run_name": "swin_t_224_15ep",
+  "limit_batches": 0,
+  "bench": 0,
+  "export_onnx": true,
+  "no_pretrained": false,
+  "prepare_only": false
+}

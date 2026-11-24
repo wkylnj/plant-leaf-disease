@@ -1,0 +1,17 @@
+{
+  "model": "swin_t",
+  "params_m": 27.549,
+  "img_size": 224,
+  "seed": 42,
+  "epochs": 15,
+  "pretrained": true,
+  "strong_aug": true,
+  "da_aug": false,
+  "best_val_acc": 0.996092,
+  "test_loss": 0.685404,
+  "test_acc": 0.996231,
+  "test_macro_f1": 0.995568,
+  "n_train": 39153,
+  "n_val": 4350,
+  "n_test": 10878
+}
