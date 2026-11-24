@@ -1,0 +1,68 @@
+{
+  "run": "resnet18_224_15ep",
+  "model": "resnet18",
+  "n_samples": 252,
+  "split": "test",
+  "variants": {
+    "baseline": {
+      "n": 252,
+      "top1_acc": 0.3373,
+      "top3_acc": 0.5833,
+      "crop_acc": 0.6071,
+      "mean_confidence": 0.4437,
+      "elapsed_s": 32.2,
+      "img_per_s": 7.8,
+      "note": ""
+    },
+    "squash": {
+      "n": 252,
+      "top1_acc": 0.2937,
+      "top3_acc": 0.5317,
+      "crop_acc": 0.5675,
+      "mean_confidence": 0.4013,
+      "elapsed_s": 25.6,
+      "img_per_s": 9.9,
+      "note": ""
+    },
+    "short224": {
+      "n": 252,
+      "top1_acc": 0.2976,
+      "top3_acc": 0.5833,
+      "crop_acc": 0.5714,
+      "mean_confidence": 0.4315,
+      "elapsed_s": 26.7,
+      "img_per_s": 9.5,
+      "note": ""
+    },
+    "letterbox": {
+      "n": 252,
+      "top1_acc": 0.2579,
+      "top3_acc": 0.5119,
+      "crop_acc": 0.5595,
+      "mean_confidence": 0.3999,
+      "elapsed_s": 24.3,
+      "img_per_s": 10.4,
+      "note": ""
+    },
+    "center320": {
+      "n": 252,
+      "top1_acc": 0.369,
+      "top3_acc": 0.5913,
+      "crop_acc": 0.619,
+      "mean_confidence": 0.3227,
+      "elapsed_s": 35.9,
+      "img_per_s": 7.0,
+      "note": ""
+    },
+    "multiscale": {
+      "n": 252,
+      "top1_acc": 0.3214,
+      "top3_acc": 0.5595,
+      "crop_acc": 0.5913,
+      "mean_confidence": 0.3941,
+      "elapsed_s": 163.2,
+      "img_per_s": 1.5,
+      "note": "6 视图平均"
+    }
+  }
+}

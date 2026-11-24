@@ -1,0 +1,28 @@
+{
+  "run": "resnet18_224_15ep",
+  "model": "resnet18",
+  "n_samples": 252,
+  "split": "test",
+  "variants": {
+    "baseline": {
+      "n": 252,
+      "top1_acc": 0.3373,
+      "top3_acc": 0.5833,
+      "crop_acc": 0.6071,
+      "mean_confidence": 0.4437,
+      "elapsed_s": 19.8,
+      "img_per_s": 12.7,
+      "note": ""
+    },
+    "squash": {
+      "n": 252,
+      "top1_acc": 0.2937,
+      "top3_acc": 0.5317,
+      "crop_acc": 0.5675,
+      "mean_confidence": 0.4013,
+      "elapsed_s": 24.2,
+      "img_per_s": 10.4,
+      "note": ""
+    }
+  }
+}

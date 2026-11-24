@@ -1,0 +1,48 @@
+{
+  "run": "resnet18_224_15ep",
+  "model": "resnet18",
+  "n_samples": 2920,
+  "split": "all",
+  "variants": {
+    "baseline": {
+      "n": 2920,
+      "top1_acc": 0.2818,
+      "top3_acc": 0.4901,
+      "crop_acc": 0.5113,
+      "mean_confidence": 0.4366,
+      "elapsed_s": 257.2,
+      "img_per_s": 11.4,
+      "note": ""
+    },
+    "center256": {
+      "n": 2920,
+      "top1_acc": 0.2969,
+      "top3_acc": 0.4973,
+      "crop_acc": 0.5271,
+      "mean_confidence": 0.3887,
+      "elapsed_s": 304.5,
+      "img_per_s": 9.6,
+      "note": ""
+    },
+    "center288": {
+      "n": 2920,
+      "top1_acc": 0.3021,
+      "top3_acc": 0.4993,
+      "crop_acc": 0.537,
+      "mean_confidence": 0.3496,
+      "elapsed_s": 325.8,
+      "img_per_s": 9.0,
+      "note": ""
+    },
+    "center320": {
+      "n": 2920,
+      "top1_acc": 0.3038,
+      "top3_acc": 0.499,
+      "crop_acc": 0.5435,
+      "mean_confidence": 0.3236,
+      "elapsed_s": 212.4,
+      "img_per_s": 13.7,
+      "note": ""
+    }
+  }
+}
