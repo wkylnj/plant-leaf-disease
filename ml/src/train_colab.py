@@ -45,6 +45,9 @@ DEFAULTS = {
     "seed": 42,
     "strong_aug": True,
     "da_aug": False,         # 域适应增强：模拟田间拍摄的光照/色彩/背景差异
+    "local_crop": False,     # 局部裁剪训练：只截叶片一小块，逼模型看病斑而非全局统计量
+    "local_scale_min": 0.15,
+    "local_scale_max": 0.5,
     "data_root": "/content/data/plantvillage",
     "out_dir": "/content/runs",
     "run_name": "",          # 空则自动用 模型名_时间戳
@@ -236,10 +239,19 @@ def download_and_prepare(data_root: str, limit_per_class: int = 0) -> Path:
 
 
 # ---------------------------------------------------------------- transform
-def build_transforms(img_size: int, train: bool, strong: bool = True, da: bool = False):
+def build_transforms(
+    img_size: int,
+    train: bool,
+    strong: bool = True,
+    da: bool = False,
+    local_crop: bool = False,
+    local_scale_min: float = 0.15,
+    local_scale_max: float = 0.5,
+):
     from torchvision import transforms as T
 
     if not train:
+        # 验证/测试口径绝不能随 --local-crop 变化，否则评测数字没法和历史比
         return T.Compose(
             [
                 T.Resize(int(img_size * 256 / 224)),
@@ -249,8 +261,19 @@ def build_transforms(img_size: int, train: bool, strong: bool = True, da: bool =
             ]
         )
 
+    # ---- 局部裁剪训练（E-da_aug 失败后的下一步假设）----
+    # da_aug 证明：扰动像素统计分布不改变模型依赖的特征类型。
+    # 这里改用很小的裁剪尺度（默认只保留 15%~50% 面积），让训练样本里经常
+    # 只剩病斑/叶脉的一小块，模型无法再靠"整片叶子的全局颜色/纹理"蒙对。
+    if local_crop:
+        first = T.RandomResizedCrop(
+            img_size, scale=(local_scale_min, local_scale_max), ratio=(0.75, 1.33)
+        )
+    else:
+        first = T.RandomResizedCrop(img_size, scale=(0.6, 1.0) if strong else (0.8, 1.0))
+
     ops = [
-        T.RandomResizedCrop(img_size, scale=(0.6, 1.0) if strong else (0.8, 1.0)),
+        first,
         T.RandomHorizontalFlip(),
     ]
     if strong:
@@ -411,7 +434,15 @@ def main():
 
     train_ds = ImageFolder(
         str(data_root / "train"),
-        transform=build_transforms(args.img_size, True, args.strong_aug, args.da_aug),
+        transform=build_transforms(
+            args.img_size,
+            True,
+            args.strong_aug,
+            args.da_aug,
+            local_crop=args.local_crop,
+            local_scale_min=args.local_scale_min,
+            local_scale_max=args.local_scale_max,
+        ),
     )
     val_ds = ImageFolder(str(data_root / "val"), transform=build_transforms(args.img_size, False))
     test_ds = ImageFolder(str(data_root / "test"), transform=build_transforms(args.img_size, False))
@@ -600,6 +631,9 @@ def main():
         "pretrained": not args.no_pretrained,
         "strong_aug": args.strong_aug,
         "da_aug": args.da_aug,
+        "local_crop": args.local_crop,
+        "local_scale_min": args.local_scale_min,
+        "local_scale_max": args.local_scale_max,
         "best_val_acc": round(best_acc, 6),
         "test_loss": round(test["loss"], 6),
         "test_acc": round(test["acc"], 6),
