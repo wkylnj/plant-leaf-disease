@@ -1,0 +1,61 @@
+{
+  "split": "all",
+  "members": [
+    {
+      "member": "swin_t_224_15ep@288,320,352",
+      "model": "swin_t",
+      "img_sizes": [
+        288,
+        320,
+        352
+      ],
+      "params_m": 27.548576,
+      "cross": {
+        "n": 2920,
+        "top1_acc": 0.3747,
+        "top3_acc": 0.6007,
+        "crop_acc": 0.5791,
+        "mean_confidence": 0.5
+      },
+      "per_size": {
+        "288": {
+          "n": 2920,
+          "top1_acc": 0.3685,
+          "top3_acc": 0.5962,
+          "crop_acc": 0.5712,
+          "mean_confidence": 0.5115
+        },
+        "320": {
+          "n": 2920,
+          "top1_acc": 0.3702,
+          "top3_acc": 0.5962,
+          "crop_acc": 0.5712,
+          "mean_confidence": 0.5308
+        },
+        "352": {
+          "n": 2920,
+          "top1_acc": 0.3709,
+          "top3_acc": 0.5983,
+          "crop_acc": 0.5777,
+          "mean_confidence": 0.4754
+        }
+      },
+      "elapsed_s": 1069.5
+    }
+  ],
+  "weights": [
+    1.0
+  ],
+  "ensemble_cross": {
+    "n": 2920,
+    "top1_acc": 0.3747,
+    "top3_acc": 0.6007,
+    "crop_acc": 0.5791,
+    "mean_confidence": 0.5
+  },
+  "ensemble_same": null,
+  "config": {
+    "flip": false,
+    "batch_size": 32
+  }
+}
