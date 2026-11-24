@@ -1,0 +1,28 @@
+{
+  "resnet18_224_15ep": {
+    "model": "resnet18",
+    "params_m": 11.196,
+    "feature_dim": 512,
+    "probe": {
+      "same_domain": {
+        "acc": 0.9927376355947785,
+        "macro_f1": 0.9895409905854047
+      },
+      "crossdomain": {
+        "n": 2920,
+        "top1_acc": 0.2821917808219178,
+        "top3_acc": 0.5099315068493151,
+        "crop_acc": 0.5188356164383562
+      },
+      "train_secs": 0.8,
+      "feat_secs": 180.1
+    },
+    "end_to_end": {
+      "same_top1": 0.994117,
+      "same_macro_f1": 0.991627,
+      "cross_top1": 0.2818,
+      "cross_top3": 0.4901,
+      "cross_crop": 0.5113
+    }
+  }
+}
