@@ -165,8 +165,10 @@ def validate_items(items) -> tuple[list, list[str]]:
 def make_stratified_folds(items, n_folds: int, seed: int) -> list[int]:
     """按类别分层分折，返回每张图的折号。
 
-    每类内部打乱后 round-robin 分配：第 k 张给第 k % n_folds 折。
-    这样每折每类约 1/n_folds，且各类数量差最多 1 张；折的总量自然接近均衡。
+    每类内部打乱后 round-robin 分配：第 k 张给第 (k + start) % n_folds 折，
+    start 是每类的随机起点。加随机起点是为了让"类样本数除不尽 5 时多出来的
+    那 1 张"分散到不同折——否则每个类都从折 0 开始，折 0 会系统性偏大
+    （实测 596 张 vs 折 4 的 573 张），折大小和折难度就混在一起了。
     固定 seed → 折划分可复现，换机器重跑得到同一套折（否则数字对不上）。
     """
     by_label: dict[int, list[int]] = defaultdict(list)
@@ -178,8 +180,9 @@ def make_stratified_folds(items, n_folds: int, seed: int) -> list[int]:
     for label in sorted(by_label):
         idxs = list(by_label[label])
         rng.shuffle(idxs)
+        start = rng.randrange(n_folds)
         for k, idx in enumerate(idxs):
-            fold_of[idx] = k % n_folds
+            fold_of[idx] = (k + start) % n_folds
     return fold_of
 
 
