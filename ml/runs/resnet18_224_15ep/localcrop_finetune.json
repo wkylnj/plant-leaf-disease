@@ -1,0 +1,76 @@
+{
+  "model": "resnet18",
+  "params_m": 11.196,
+  "run_dir": "runs\\resnet18_224_15ep",
+  "ckpt_epoch": 11,
+  "config": {
+    "img_size": 224,
+    "epochs": 3,
+    "batch_size": 64,
+    "lr_backbone": 0.0001,
+    "lr_head": 0.001,
+    "local_crop_scale": [
+      0.15,
+      0.5
+    ],
+    "strong_aug": false,
+    "label_smoothing": 0.1,
+    "seed": 42
+  },
+  "before": {
+    "same_domain": {
+      "n": 10878,
+      "top1_acc": 0.9941165655451369
+    },
+    "crossdomain": {
+      "n": 2920,
+      "top1_acc": 0.28184931506849314,
+      "top3_acc": 0.49006849315068496,
+      "crop_acc": 0.5113013698630137,
+      "mean_conf": 0.43655835283435374,
+      "elapsed_s": 48.2
+    }
+  },
+  "after": {
+    "same_domain": {
+      "n": 10878,
+      "top1_acc": 0.9879573451002023
+    },
+    "crossdomain": {
+      "n": 2920,
+      "top1_acc": 0.22397260273972602,
+      "top3_acc": 0.4417808219178082,
+      "crop_acc": 0.4602739726027397,
+      "mean_conf": 0.397759535258049,
+      "elapsed_s": 61.1
+    }
+  },
+  "delta": {
+    "same_domain_pp": -0.62,
+    "crossdomain_pp": -5.79,
+    "crop_pp": -5.1
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.882942,
+      "train_acc": 0.944531,
+      "val_top1": 0.98546,
+      "secs": 462.5
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.808232,
+      "train_acc": 0.968125,
+      "val_top1": 0.98523,
+      "secs": 542.1
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.777237,
+      "train_acc": 0.977578,
+      "val_top1": 0.990538,
+      "secs": 586.8
+    }
+  ]
+}

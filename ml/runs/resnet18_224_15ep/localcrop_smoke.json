@@ -1,0 +1,62 @@
+{
+  "model": "resnet18",
+  "params_m": 11.196,
+  "run_dir": "runs\\resnet18_224_15ep",
+  "ckpt_epoch": 11,
+  "config": {
+    "img_size": 224,
+    "epochs": 1,
+    "batch_size": 64,
+    "lr_backbone": 0.0001,
+    "lr_head": 0.001,
+    "local_crop_scale": [
+      0.15,
+      0.5
+    ],
+    "strong_aug": false,
+    "label_smoothing": 0.1,
+    "seed": 42
+  },
+  "before": {
+    "same_domain": {
+      "n": 10878,
+      "top1_acc": 0.9941165655451369
+    },
+    "crossdomain": {
+      "n": 2920,
+      "top1_acc": 0.28184931506849314,
+      "top3_acc": 0.49006849315068496,
+      "crop_acc": 0.5113013698630137,
+      "mean_conf": 0.43655835283435374,
+      "elapsed_s": 91.7
+    }
+  },
+  "after": {
+    "same_domain": {
+      "n": 10878,
+      "top1_acc": 0.9886008457437029
+    },
+    "crossdomain": {
+      "n": 2920,
+      "top1_acc": 0.2808219178082192,
+      "top3_acc": 0.4794520547945205,
+      "crop_acc": 0.4931506849315068,
+      "mean_conf": 0.41429192478424065,
+      "elapsed_s": 89.5
+    }
+  },
+  "delta": {
+    "same_domain_pp": -0.55,
+    "crossdomain_pp": -0.1,
+    "crop_pp": -1.82
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.943206,
+      "train_acc": 0.9375,
+      "val_top1": 0.992384,
+      "secs": 96.1
+    }
+  ]
+}
