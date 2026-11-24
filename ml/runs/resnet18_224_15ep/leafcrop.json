@@ -1,0 +1,40 @@
+{
+  "run": "resnet18_224_15ep",
+  "model": "resnet18",
+  "split": "test",
+  "rows": [
+    {
+      "n": 252,
+      "top1_acc": 0.3373,
+      "top3_acc": 0.5833,
+      "crop_acc": 0.6071,
+      "mean_confidence": 0.4437,
+      "variant": "baseline",
+      "fallback": 0,
+      "leaf_ratio_mean": null,
+      "elapsed_s": 12.0
+    },
+    {
+      "n": 252,
+      "top1_acc": 0.3016,
+      "top3_acc": 0.5556,
+      "crop_acc": 0.5556,
+      "mean_confidence": 0.4133,
+      "variant": "leafcrop",
+      "fallback": 0,
+      "leaf_ratio_mean": null,
+      "elapsed_s": 116.8
+    },
+    {
+      "n": 252,
+      "top1_acc": 0.3095,
+      "top3_acc": 0.5516,
+      "crop_acc": 0.5635,
+      "mean_confidence": 0.4005,
+      "variant": "leafcrop_wide",
+      "fallback": 0,
+      "leaf_ratio_mean": null,
+      "elapsed_s": 97.4
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "run": "resnet18_224_15ep",
+  "model": "resnet18",
+  "split": "test",
+  "img_size": 224,
+  "pv_lab_mean": [
+    0.509,
+    -0.04266,
+    0.07681
+  ],
+  "pv_lab_std": [
+    0.17058,
+    0.09127,
+    0.11784
+  ],
+  "rows": [
+    {
+      "n": 252,
+      "top1_acc": 0.3413,
+      "top3_acc": 0.5794,
+      "crop_acc": 0.6111,
+      "mean_confidence": 0.4438,
+      "alpha": 0.0,
+      "img_size": 224,
+      "elapsed_s": 13.1
+    },
+    {
+      "n": 252,
+      "top1_acc": 0.3254,
+      "top3_acc": 0.5833,
+      "crop_acc": 0.6151,
+      "mean_confidence": 0.4405,
+      "alpha": 0.3,
+      "img_size": 224,
+      "elapsed_s": 568.3
+    },
+    {
+      "n": 252,
+      "top1_acc": 0.3294,
+      "top3_acc": 0.5635,
+      "crop_acc": 0.6151,
+      "mean_confidence": 0.4403,
+      "alpha": 0.6,
+      "img_size": 224,
+      "elapsed_s": 557.9
+    },
+    {
+      "n": 252,
+      "top1_acc": 0.3135,
+      "top3_acc": 0.5476,
+      "crop_acc": 0.6032,
+      "mean_confidence": 0.4399,
+      "alpha": 1.0,
+      "img_size": 224,
+      "elapsed_s": 395.6
+    }
+  ]
+}

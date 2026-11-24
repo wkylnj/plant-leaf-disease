@@ -1,0 +1,97 @@
+{
+  "split": "all",
+  "members": [
+    {
+      "member": "swin_t_224_15ep@352",
+      "model": "swin_t",
+      "img_sizes": [
+        352
+      ],
+      "params_m": 27.548576,
+      "cross": {
+        "n": 2920,
+        "top1_acc": 0.3709,
+        "top3_acc": 0.5983,
+        "crop_acc": 0.5777,
+        "mean_confidence": 0.4754
+      },
+      "per_size": {
+        "352": {
+          "n": 2920,
+          "top1_acc": 0.3709,
+          "top3_acc": 0.5983,
+          "crop_acc": 0.5777,
+          "mean_confidence": 0.4754
+        }
+      },
+      "elapsed_s": 433.0
+    },
+    {
+      "member": "resnet18_224_15ep@320",
+      "model": "resnet18",
+      "img_sizes": [
+        320
+      ],
+      "params_m": 11.196006,
+      "cross": {
+        "n": 2920,
+        "top1_acc": 0.3041,
+        "top3_acc": 0.4969,
+        "crop_acc": 0.5449,
+        "mean_confidence": 0.3237
+      },
+      "per_size": {
+        "320": {
+          "n": 2920,
+          "top1_acc": 0.3041,
+          "top3_acc": 0.4969,
+          "crop_acc": 0.5449,
+          "mean_confidence": 0.3237
+        }
+      },
+      "elapsed_s": 124.8
+    },
+    {
+      "member": "mobilenet_v3_large_224_15ep@320",
+      "model": "mobilenet_v3_large",
+      "img_sizes": [
+        320
+      ],
+      "params_m": 4.25071,
+      "cross": {
+        "n": 2920,
+        "top1_acc": 0.2675,
+        "top3_acc": 0.5041,
+        "crop_acc": 0.5514,
+        "mean_confidence": 0.4422
+      },
+      "per_size": {
+        "320": {
+          "n": 2920,
+          "top1_acc": 0.2675,
+          "top3_acc": 0.5041,
+          "crop_acc": 0.5514,
+          "mean_confidence": 0.4422
+        }
+      },
+      "elapsed_s": 107.9
+    }
+  ],
+  "weights": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "ensemble_cross": {
+    "n": 2920,
+    "top1_acc": 0.3449,
+    "top3_acc": 0.5812,
+    "crop_acc": 0.5904,
+    "mean_confidence": 0.369
+  },
+  "ensemble_same": null,
+  "config": {
+    "flip": false,
+    "batch_size": 32
+  }
+}

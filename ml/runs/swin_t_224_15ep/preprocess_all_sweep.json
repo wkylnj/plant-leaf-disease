@@ -1,0 +1,48 @@
+{
+  "run": "swin_t_224_15ep",
+  "model": "swin_t",
+  "n_samples": 2920,
+  "split": "all",
+  "variants": {
+    "baseline": {
+      "n": 2920,
+      "top1_acc": 0.3493,
+      "top3_acc": 0.5705,
+      "crop_acc": 0.5322,
+      "mean_confidence": 0.5667,
+      "elapsed_s": 191.7,
+      "img_per_s": 15.2,
+      "note": ""
+    },
+    "center288": {
+      "n": 2920,
+      "top1_acc": 0.3685,
+      "top3_acc": 0.5962,
+      "crop_acc": 0.5712,
+      "mean_confidence": 0.5115,
+      "elapsed_s": 334.8,
+      "img_per_s": 8.7,
+      "note": ""
+    },
+    "center320": {
+      "n": 2920,
+      "top1_acc": 0.3705,
+      "top3_acc": 0.5969,
+      "crop_acc": 0.5719,
+      "mean_confidence": 0.5309,
+      "elapsed_s": 383.2,
+      "img_per_s": 7.6,
+      "note": ""
+    },
+    "center352": {
+      "n": 2920,
+      "top1_acc": 0.3709,
+      "top3_acc": 0.5983,
+      "crop_acc": 0.5777,
+      "mean_confidence": 0.4754,
+      "elapsed_s": 476.5,
+      "img_per_s": 6.1,
+      "note": ""
+    }
+  }
+}

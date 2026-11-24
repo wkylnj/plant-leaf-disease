@@ -24,6 +24,7 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -44,17 +45,17 @@ from models import build_model  # noqa: E402
 ARTIFACT_DIR = ROOT / "artifacts"
 
 
-def parse_member(spec: str) -> tuple[Path, int]:
-    """``runs/xxx@320`` -> (Path, 320)。省略 ``@size`` 时默认 224。"""
+def parse_member(spec: str) -> tuple[Path, list[int]]:
+    """``runs/xxx@320`` -> (Path, [320])；``@224,288,320`` 表示多分辨率平均。"""
     if "@" in spec:
         run_part, size_part = spec.rsplit("@", 1)
-        size = int(size_part)
+        sizes = [int(s) for s in size_part.split(",") if s.strip()]
     else:
-        run_part, size = spec, 224
+        run_part, sizes = spec, [224]
     run_dir = Path(run_part)
     if not run_dir.is_absolute():
         run_dir = (ROOT / run_part).resolve()
-    return run_dir, size
+    return run_dir, sizes
 
 
 def load_member(run_dir: Path):
@@ -68,12 +69,16 @@ def load_member(run_dir: Path):
     return model, meta, classes
 
 
-def crossdomain_probs(model, size: int, args) -> tuple[torch.Tensor, torch.Tensor]:
-    pv_folders = sorted(PLANTDOC_TO_PV_FOLDER.values())
-    ds = PlantDocItems(Path(args.plantdoc_root), args.split, pv_folders,
-                       build_variant_transform("baseline", size))
-    loader = DataLoader(ds, batch_size=args.batch_size, shuffle=False,
-                        num_workers=args.num_workers)
+def crossdomain_loader(size: int, args, pv_folders: list[str]) -> DataLoader:
+    tf, _actual = build_variant_transform("baseline", size)
+    ds = PlantDocItems(Path(args.plantdoc_root), args.split, pv_folders, tf)
+    return DataLoader(ds, batch_size=args.batch_size, shuffle=False,
+                      num_workers=args.num_workers)
+
+
+def crossdomain_probs(model, size: int, args,
+                      pv_folders: list[str]) -> tuple[torch.Tensor, torch.Tensor]:
+    loader = crossdomain_loader(size, args, pv_folders)
     return predict_probs(model, loader, args.device, flip=args.flip)
 
 
@@ -120,6 +125,10 @@ def main() -> int:
     p.add_argument("--flip", action="store_true", help="每个成员额外做水平翻转平均")
     p.add_argument("--same-domain", nargs="*", default=None,
                    help="需要额外评同域 test 的成员 run_dir（会慢，Swin 不建议）")
+    p.add_argument("--weights", default="",
+                   help="逗号分隔的成员权重，如 1,0.3,0.2；空则等权")
+    p.add_argument("--save-probs", default="",
+                   help="把各成员概率矩阵存到该目录（.npz），便于离线权重搜索")
     p.add_argument("--out", default="")
     args = p.parse_args()
 
@@ -130,55 +139,84 @@ def main() -> int:
         for s in args.same_domain:
             same_set.add(str(parse_member(s)[0]))
 
-    pv_folders = sorted(PLANTDOC_TO_PV_FOLDER.values())
+    # 标签空间必须与模型输出通道顺序严格一致：取 ck["classes"]（38 类文件夹名）。
+    # 不能对映射目标排序，那样通道会错位（实测 top-1 从 33.7% 掉到 6.8%）。
+    loaded: list[tuple[Path, list[int], object, object, list[str]]] = []
+    pv_folders: list[str] | None = None
+    for run_dir, sizes in members:
+        model, meta, classes = load_member(run_dir)
+        if pv_folders is None:
+            pv_folders = classes
+        elif classes != pv_folders:
+            raise SystemExit(f"成员 {run_dir.name} 的类别顺序与其他成员不一致")
+        loaded.append((run_dir, sizes, model, meta, classes))
+    assert pv_folders is not None
+
     records: list[dict] = []
-    cd_probs_sum: torch.Tensor | None = None
+    member_probs: list[torch.Tensor] = []
     cd_labels: torch.Tensor | None = None
     sd_probs_sum: torch.Tensor | None = None
     sd_labels: torch.Tensor | None = None
     all_same = bool(same_set) and all(str(m[0]) in same_set for m in members)
 
-    for run_dir, size in members:
-        tag = f"{run_dir.name}@{size}"
+    for run_dir, sizes, model, meta, classes in loaded:
+        tag = f"{run_dir.name}@{','.join(str(s) for s in sizes)}"
         print(f"\n=== {tag} ===", flush=True)
         t0 = time.time()
-        model, meta, classes = load_member(run_dir)
-        probs, labels = crossdomain_probs(model, size, args)
-        if args.flip:
-            probs2, _ = predict_probs(
-                model,
-                DataLoader(PlantDocItems(Path(args.plantdoc_root), args.split, pv_folders,
-                                         build_variant_transform("baseline", size)),
-                           batch_size=args.batch_size, shuffle=False,
-                           num_workers=args.num_workers),
-                args.device, flip=True)
-            probs = (probs + probs2) / 2
+        probs: torch.Tensor | None = None
+        labels: torch.Tensor | None = None
+        per_size: dict[str, dict] = {}
+        for size in sizes:
+            p_i, labels = crossdomain_probs(model, size, args, pv_folders)
+            if args.flip:
+                p2, _ = predict_probs(model, crossdomain_loader(size, args, pv_folders),
+                                      args.device, flip=True)
+                p_i = (p_i + p2) / 2
+            per_size[str(size)] = metrics(p_i, labels, pv_folders)
+            probs = p_i if probs is None else probs + p_i
+        assert probs is not None and labels is not None
+        probs = probs / len(sizes)
         m = metrics(probs, labels, pv_folders)
-        rec = {"member": tag, "model": meta.name, "img_size": size,
-               "params_m": meta.params_m, "cross": m,
+        rec = {"member": tag, "model": meta.name, "img_sizes": sizes,
+               "params_m": meta.params_m, "cross": m, "per_size": per_size,
                "elapsed_s": round(time.time() - t0, 1)}
+        if len(sizes) > 1:
+            for s, pm in per_size.items():
+                print(f"  单独 @{s}: top1={pm['top1_acc']:.4f} crop={pm['crop_acc']:.4f}",
+                      flush=True)
         print(f"跨域 top1={m['top1_acc']:.4f} top3={m['top3_acc']:.4f} "
               f"crop={m['crop_acc']:.4f} conf={m['mean_confidence']:.4f}", flush=True)
 
-        if sd_labels is not None:
+        if cd_labels is not None:
             assert torch.equal(labels, cd_labels), "成员间样本顺序不一致"
-        cd_probs_sum = probs if cd_probs_sum is None else cd_probs_sum + probs
         cd_labels = labels
 
         if str(run_dir) in same_set:
-            sd, sd_lab = samedomain_probs(model, size, args)
+            sd, sd_lab = samedomain_probs(model, sizes[0], args)
             sm = same_metrics(sd, sd_lab)
             rec["same"] = sm
             print(f"同域 top1={sm['top1_acc']:.4f} macroF1={sm['macro_f1']:.4f}", flush=True)
             if all_same:
-                assert torch.equal(sd_lab, sd_labels) if sd_labels is not None else True
                 sd_probs_sum = sd if sd_probs_sum is None else sd_probs_sum + sd
                 sd_labels = sd_lab
+        member_probs.append(probs)
         records.append(rec)
 
     n_members = len(members)
-    ens_cd = metrics(cd_probs_sum / n_members, cd_labels, pv_folders)
-    print(f"\n=== 集成（{n_members} 成员）===")
+    if args.weights.strip():
+        w = [float(x) for x in args.weights.split(",")]
+        if len(w) != n_members:
+            raise SystemExit(f"--weights 需要 {n_members} 个值，收到 {len(w)} 个")
+    else:
+        w = [1.0] * n_members
+    wsum = sum(w)
+    if wsum <= 0:
+        raise SystemExit("--weights 之和必须 > 0")
+
+    stacked = torch.stack(member_probs, dim=0)          # [M, N, C]
+    w_t = torch.tensor(w, dtype=torch.float32).view(-1, 1, 1)
+    ens_cd = metrics((stacked * w_t).sum(dim=0) / wsum, cd_labels, pv_folders)
+    print(f"\n=== 集成（{n_members} 成员，权重 {w}）===")
     print(f"跨域 top1={ens_cd['top1_acc']:.4f} top3={ens_cd['top3_acc']:.4f} "
           f"crop={ens_cd['crop_acc']:.4f} conf={ens_cd['mean_confidence']:.4f}")
     ens_sd = None
@@ -186,9 +224,22 @@ def main() -> int:
         ens_sd = same_metrics(sd_probs_sum / n_members, sd_labels)
         print(f"同域 top1={ens_sd['top1_acc']:.4f} macroF1={ens_sd['macro_f1']:.4f}")
 
+    if args.save_probs:
+        sp = Path(args.save_probs)
+        sp.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            sp / "probs.npz",
+            probs=stacked.numpy(),
+            labels=cd_labels.numpy(),
+            members=np.array([r["member"] for r in records]),
+            pv_folders=np.array(pv_folders),
+        )
+        print(f"概率矩阵已存 {sp / 'probs.npz'}  shape={tuple(stacked.shape)}")
+
     payload = {
         "split": args.split,
         "members": records,
+        "weights": w,
         "ensemble_cross": ens_cd,
         "ensemble_same": ens_sd,
         "config": {"flip": args.flip, "batch_size": args.batch_size},
