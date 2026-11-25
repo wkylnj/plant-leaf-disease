@@ -1,0 +1,32 @@
+{
+  "none": {
+    "acc": 0.9925,
+    "correct": 794,
+    "n": 800
+  },
+  "shrink": {
+    "acc": 0.98625,
+    "correct": 789,
+    "n": 800
+  },
+  "rotate": {
+    "acc": 0.9875,
+    "correct": 790,
+    "n": 800
+  },
+  "rot_shrink": {
+    "acc": 0.96125,
+    "correct": 769,
+    "n": 800
+  },
+  "jpeg": {
+    "acc": 0.9925,
+    "correct": 794,
+    "n": 800
+  },
+  "enh": {
+    "acc": 0.99375,
+    "correct": 795,
+    "n": 800
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "model": "resnet18",
+  "feature_dim": 512,
+  "domains": {
+    "pv_test": {
+      "n": 600,
+      "dist_to_ref_mean": 0.8341148495674133,
+      "dist_to_ref_median": 0.8324638605117798,
+      "ref_inner_dist_mean": 0.6759374737739563,
+      "ratio_vs_ref_inner": 1.2340118885040283
+    },
+    "fbr_test": {
+      "n": 600,
+      "dist_to_ref_mean": 0.6505597829818726,
+      "dist_to_ref_median": 0.646868109703064,
+      "ref_inner_dist_mean": 0.6759374737739563,
+      "ratio_vs_ref_inner": 0.9624555706977844
+    },
+    "plantdoc_test": {
+      "n": 252,
+      "dist_to_ref_mean": 0.6724587678909302,
+      "dist_to_ref_median": 0.6621993780136108,
+      "ref_inner_dist_mean": 0.6759374737739563,
+      "ratio_vs_ref_inner": 0.9948534965515137
+    }
+  },
+  "fbr_closer": true,
+  "improvement_pct": 22.00597036256286
+}
