@@ -77,3 +77,13 @@ _kaggle_out/
 _colab_code.txt
 _colab_login*.log
 _colab_login*.err
+# 忽略临时探测脚本与冒烟产物
+_*.png
+scripts/_probe_*.py
+ml/tmp/
+ml/runs/smoke_*/
+ml/runs/_fbr_smoke/
+ml/data/raw/plantdoc_bg/
+ml/data/processed/pv_fbr/
+ml/data/processed/pv_fbr_smoke/
+ml/artifacts/calibration_cache/

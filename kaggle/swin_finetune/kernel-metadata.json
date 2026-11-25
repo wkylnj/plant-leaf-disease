@@ -1,0 +1,15 @@
+{
+  "id": "wangkaiyu66/plant-leaf-swin-finetune",
+  "title": "plant-leaf-swin-finetune",
+  "code_file": "run.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["wangkaiyu66/plantdoc-pv-ckpt"],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "NvidiaTeslaT4"
+}

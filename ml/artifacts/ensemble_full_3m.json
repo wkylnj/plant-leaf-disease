@@ -1,0 +1,59 @@
+{
+  "split": "all",
+  "members": [
+    {
+      "member": "swin_t_224_15ep@288",
+      "model": "swin_t",
+      "img_size": 288,
+      "params_m": 27.548576,
+      "cross": {
+        "n": 2920,
+        "top1_acc": 0.3685,
+        "top3_acc": 0.5962,
+        "crop_acc": 0.5712,
+        "mean_confidence": 0.5115
+      },
+      "elapsed_s": 347.7
+    },
+    {
+      "member": "resnet18_224_15ep@320",
+      "model": "resnet18",
+      "img_size": 320,
+      "params_m": 11.196006,
+      "cross": {
+        "n": 2920,
+        "top1_acc": 0.3041,
+        "top3_acc": 0.4969,
+        "crop_acc": 0.5449,
+        "mean_confidence": 0.3237
+      },
+      "elapsed_s": 137.3
+    },
+    {
+      "member": "mobilenet_v3_large_224_15ep@320",
+      "model": "mobilenet_v3_large",
+      "img_size": 320,
+      "params_m": 4.25071,
+      "cross": {
+        "n": 2920,
+        "top1_acc": 0.2675,
+        "top3_acc": 0.5041,
+        "crop_acc": 0.5514,
+        "mean_confidence": 0.4422
+      },
+      "elapsed_s": 120.6
+    }
+  ],
+  "ensemble_cross": {
+    "n": 2920,
+    "top1_acc": 0.3466,
+    "top3_acc": 0.5726,
+    "crop_acc": 0.5805,
+    "mean_confidence": 0.3786
+  },
+  "ensemble_same": null,
+  "config": {
+    "flip": false,
+    "batch_size": 32
+  }
+}
