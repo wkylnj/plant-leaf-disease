@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f6f2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>叶片医生</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f6f2;
+      --surface: #ffffff;
+      --ink: #19231d;
+      --muted: #5b665f;
+      --line: #dbe2dc;
+      --green: #246b4a;
+      --green-dark: #174a35;
+      --green-soft: #e6efe8;
+      --ochre: #9a5818;
+      --ochre-soft: #fff1dc;
+      --red: #9b3838;
+      --red-soft: #f9e9e7;
+      --radius: 8px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--paper); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    .app-shell { max-width: 1120px; min-height: 100vh; margin: 0 auto; padding: 0 24px calc(24px + var(--safe-bottom)); }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      min-height: 82px; border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px;
+      border-radius: 10px; background: var(--green); color: #fff; font-size: 20px; font-weight: 700;
+    }
+    .brand-name { margin: 0; font-size: 20px; line-height: 1.2; font-weight: 700; color: var(--green-dark); }
+    .brand-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; }
+    .connection { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: #89938d; }
+    .connection.online { color: var(--green-dark); }
+    .connection.online .connection-dot { background: #2e8b5e; }
+    .connection.offline .connection-dot { background: #ba5a4a; }
+    .nav {
+      display: flex; gap: 4px; margin: 20px 0 0; padding: 4px;
+      background: #e9ede9; border-radius: 8px; width: fit-content;
+    }
+    .nav button {
+      min-width: 84px; min-height: 40px; padding: 0 15px; border: 0; border-radius: 6px;
+      color: var(--muted); background: transparent; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .nav button[aria-current="page"] { background: var(--surface); color: var(--green-dark); box-shadow: 0 1px 2px #14251a12; }
+    .service-row {
+      display: flex; align-items: center; gap: 10px; margin: 18px 0 28px;
+    }
+    .service-label { color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .service-input {
+      min-width: 0; width: min(100%, 420px); height: 42px; padding: 0 12px;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 14px;
+    }
+    .service-input:focus, input:focus { outline: 2px solid #246b4a36; outline-offset: 1px; }
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 46px; padding: 0 17px; border: 1px solid transparent; border-radius: 7px;
+      color: #fff; background: var(--green); font-size: 15px; font-weight: 650; cursor: pointer;
+      transition: background .15s ease, transform .15s ease;
+    }
+    .button:hover { background: #1d5c3f; }
+    .button:active { transform: translateY(1px); }
+    .button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+    .button.secondary { color: var(--green-dark); border-color: #aabdaf; background: var(--surface); }
+    .button.secondary:hover { background: var(--green-soft); }
+    .button.quiet { min-height: 40px; padding: 0 12px; color: var(--green-dark); background: transparent; border-color: var(--line); }
+    .button.danger { color: var(--red); border-color: #e5b9b4; background: var(--surface); }
+    .button.small { min-height: 38px; padding: 0 12px; font-size: 14px; }
+    .icon { display: inline-block; min-width: 18px; font-size: 18px; line-height: 1; text-align: center; }
+    .notice {
+      display: none; margin: -10px 0 20px; padding: 12px 14px; border-radius: 6px;
+      color: var(--red); background: var(--red-soft); font-size: 14px; line-height: 1.45;
+    }
+    .notice.visible { display: block; }
+    .notice.success { color: var(--green-dark); background: var(--green-soft); }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin: 0 0 22px; }
+    .eyebrow { margin: 0 0 7px; color: var(--green); font-size: 12px; letter-spacing: .04em; font-weight: 700; }
+    h1 { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 720; }
+    h2 { margin: 0; font-size: 19px; line-height: 1.3; font-weight: 680; }
+    h3 { margin: 0; font-size: 16px; line-height: 1.35; font-weight: 650; }
+    .subheading { margin: 7px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .recognize-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: start; gap: 34px; }
+    .photo-zone {
+      position: relative; display: grid; place-items: center; min-height: 310px; overflow: hidden;
+      border: 1px dashed #a8b8ab; border-radius: 8px; background: #edf1ec;
+    }
+    .photo-zone.has-image { border-style: solid; background: #e3e9e2; }
+    .photo-placeholder { display: grid; justify-items: center; gap: 9px; padding: 24px; text-align: center; }
+    .photo-glyph { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; color: var(--green-dark); background: #dce8de; font-size: 24px; }
+    .photo-placeholder strong { font-size: 16px; }
+    .photo-placeholder span { color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .photo-preview { display: none; width: 100%; max-height: 520px; object-fit: contain; }
+    .photo-zone.has-image .photo-preview { display: block; }
+    .photo-zone.has-image .photo-placeholder { display: none; }
+    .photo-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+    .file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+    .privacy-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .result-column { min-width: 0; }
+    .empty-result { min-height: 195px; padding: 18px 0; border-top: 1px solid var(--line); }
+    .empty-result p { max-width: 330px; margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .result-loading { display: none; align-items: center; gap: 11px; min-height: 100px; color: var(--green-dark); font-size: 15px; }
+    .result-loading.visible { display: flex; }
+    .spinner { width: 22px; height: 22px; border: 2px solid #bdd1c1; border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .result-content { display: none; padding-top: 16px; border-top: 1px solid var(--line); }
+    .result-content.visible { display: block; }
+    .confidence-warning { display: none; margin-bottom: 13px; padding: 11px 12px; border-radius: 6px; color: var(--ochre); background: var(--ochre-soft); font-size: 14px; line-height: 1.45; }
+    .confidence-warning.visible { display: block; }
+    .result-kicker { margin: 0 0 7px; color: var(--muted); font-size: 13px; }
+    .result-name { margin: 0; color: var(--green-dark); font-size: 27px; line-height: 1.25; font-weight: 730; overflow-wrap: anywhere; }
+    .confidence-line { display: flex; align-items: center; gap: 11px; margin: 16px 0 7px; }
+    .confidence-track { height: 8px; flex: 1; overflow: hidden; border-radius: 5px; background: #dfe7e0; }
+    .confidence-fill { height: 100%; width: 0; border-radius: inherit; background: var(--green); transition: width .3s ease; }
+    .confidence-value { min-width: 44px; color: var(--ink); text-align: right; font-size: 16px; font-weight: 700; }
+    .microcopy { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .candidate-heading { margin: 24px 0 10px; font-size: 16px; font-weight: 680; }
+    .candidate-list { border-top: 1px solid var(--line); }
+    .candidate {
+      display: grid; grid-template-columns: minmax(0, 1fr) 1fr 42px; align-items: center; gap: 10px;
+      min-height: 45px; border-bottom: 1px solid var(--line); font-size: 14px;
+    }
+    .candidate-name { overflow-wrap: anywhere; }
+    .candidate-track { height: 5px; overflow: hidden; border-radius: 3px; background: #e2e8e2; }
+    .candidate-track span { display: block; height: 100%; border-radius: inherit; background: #73947c; }
+    .candidate-prob { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+    .result-meta { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+    .feedback-actions { display: flex; gap: 9px; margin-top: 17px; }
+    .feedback-actions .button { flex: 1; }
+    .feedback-flow { display: none; margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .feedback-flow.visible { display: block; }
+    .feedback-flow p { margin: 0 0 11px; font-weight: 650; }
+    .choice-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; max-height: 250px; overflow: auto; overscroll-behavior: contain; }
+    .choice-list.diseases { grid-template-columns: 1fr; }
+    .choice { min-height: 44px; padding: 8px 10px; border: 1px solid #bdcabe; border-radius: 6px; background: #fff; color: var(--ink); font-size: 14px; cursor: pointer; text-align: left; }
+    .choice:hover { border-color: var(--green); background: var(--green-soft); }
+    .flow-back { margin: -5px 0 10px; padding: 6px 0; border: 0; color: var(--green); background: transparent; font-size: 13px; cursor: pointer; }
+    .disclaimer { margin: 30px 0 0; padding: 15px 0 5px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .page-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .history-list { border-top: 1px solid var(--line); }
+    .history-row {
+      display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 13px; align-items: center;
+      min-height: 86px; padding: 11px 4px; border-bottom: 1px solid var(--line); cursor: pointer;
+    }
+    .history-row:hover { background: #edf2ed; }
+    .history-thumb { width: 62px; height: 62px; object-fit: cover; border-radius: 6px; background: #e1e8e1; }
+    .history-fallback { display: grid; place-items: center; color: var(--green); font-size: 21px; }
+    .history-title { margin: 0; font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+    .history-meta { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .history-prob { color: var(--green-dark); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .empty-state { padding: 54px 16px; text-align: center; }
+    .empty-state strong { display: block; margin-bottom: 8px; font-size: 18px; }
+    .empty-state p { margin: 0 0 17px; color: var(--muted); font-size: 14px; }
+    .pager { display: flex; justify-content: center; gap: 10px; padding: 16px 0; }
+    .detail-view { display: none; margin: 18px 0 28px; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .detail-view.visible { display: block; }
+    .detail-image { display: block; max-width: 100%; max-height: 360px; margin: 0 auto 18px; object-fit: contain; border-radius: 6px; background: #e6ece6; }
+    .detail-values { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: 9px 14px; margin: 18px 0; font-size: 14px; }
+    .detail-values dt { color: var(--muted); }
+    .detail-values dd { margin: 0; overflow-wrap: anywhere; }
+    .about-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 34px; }
+    .about-section { padding: 17px 0; border-top: 1px solid var(--line); }
+    .about-section h2 { margin-bottom: 14px; }
+    .info-row { display: flex; justify-content: space-between; gap: 18px; padding: 9px 0; border-bottom: 1px solid #e4e9e4; font-size: 14px; }
+    .info-row:last-child { border-bottom: 0; }
+    .info-row span:first-child { color: var(--muted); }
+    .info-row span:last-child { text-align: right; overflow-wrap: anywhere; }
+    .about-warning { padding: 14px; border-left: 3px solid #b77a2a; color: #553b1c; background: var(--ochre-soft); font-size: 14px; line-height: 1.6; }
+    .about-copy { color: var(--muted); font-size: 14px; line-height: 1.65; }
+    .footer { padding: 25px 0 5px; color: #78827b; font-size: 12px; text-align: center; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 760px) {
+      .app-shell { padding: 0 17px calc(18px + var(--safe-bottom)); }
+      .topbar { min-height: 70px; }
+      .brand-mark { width: 36px; height: 36px; flex-basis: 36px; }
+      .brand-name { font-size: 18px; }
+      .brand-subtitle { display: none; }
+      .connection { font-size: 12px; }
+      .topbar-right { gap: 8px; }
+      .nav { display: grid; grid-template-columns: repeat(3,1fr); width: 100%; margin: 13px 0 0; }
+      .nav button { min-width: 0; padding: 0 8px; }
+      .service-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 7px; margin: 14px 0 23px; }
+      .service-label { font-size: 12px; }
+      .service-input { width: 100%; height: 40px; padding: 0 9px; font-size: 13px; }
+      .service-row .button { min-height: 40px; padding: 0 10px; font-size: 13px; }
+      .page-heading { margin-bottom: 17px; }
+      h1 { font-size: 25px; }
+      .recognize-grid { grid-template-columns: 1fr; gap: 24px; }
+      .photo-zone { min-height: 225px; max-height: 46vh; }
+      .photo-preview { max-height: 46vh; }
+      .photo-actions .button { flex: 1 1 145px; }
+      .result-column { width: 100%; }
+      .empty-result { min-height: auto; padding: 14px 0 2px; }
+      .result-content { padding-top: 13px; }
+      .result-name { font-size: 25px; }
+      .disclaimer { margin-top: 24px; font-size: 12px; }
+      .about-grid { grid-template-columns: 1fr; gap: 0; }
+      .history-row { grid-template-columns: 54px minmax(0,1fr) auto; gap: 10px; min-height: 76px; }
+      .history-thumb { width: 54px; height: 54px; }
+      .history-title { font-size: 14px; }
+      .history-meta { font-size: 11px; }
+      .detail-image { max-height: 42vh; }
+    }
+    @media (max-width: 390px) {
+      .app-shell { padding-left: 13px; padding-right: 13px; }
+      .service-row { grid-template-columns: 1fr auto; }
+      .service-label { grid-column: 1 / -1; }
+      .service-input { grid-column: 1; }
+      .service-row .button { grid-column: 2; grid-row: 2; }
+      .feedback-actions { flex-direction: column; }
+      .history-row { grid-template-columns: 48px minmax(0,1fr) auto; gap: 8px; }
+      .history-thumb { width: 48px; height: 48px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">叶</div>
+        <div>
+          <p class="brand-name">叶片医生</p>
+          <p class="brand-subtitle">植物叶片病害辅助识别</p>
+        </div>
+      </div>
+      <div id="connection" class="connection" role="status" aria-live="polite">
+        <span class="connection-dot"></span><span id="connectionText">正在连接</span>
+      </div>
+    </header>
+
+    <nav class="nav" aria-label="主导航">
+      <button type="button" data-page="recognize" aria-current="page">识别</button>
+      <button type="button" data-page="history">记录</button>
+      <button type="button" data-page="about">关于</button>
+    </nav>
+
+    <div class="service-row">
+      <label class="service-label" for="apiBase">后端地址</label>
+      <input id="apiBase" class="service-input" type="url" inputmode="url" autocomplete="url" spellcheck="false" aria-label="后端服务地址">
+      <button id="connectButton" class="button quiet" type="button">连接</button>
+    </div>
+
+    <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+    <main>
+      <section id="page-recognize" class="page active" aria-labelledby="recognizeTitle">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">图像识别</p>
+            <h1 id="recognizeTitle">识别叶片</h1>
+            <p class="subheading">选择一张清晰的叶片照片</p>
+          </div>
+          <a id="apiDocs" class="button quiet small" href="#" target="_blank" rel="noreferrer">API 文档</a>
+        </div>
+
+        <div class="recognize-grid">
+          <section aria-label="上传叶片图片">
+            <div id="photoZone" class="photo-zone">
+              <div class="photo-placeholder">
+                <div class="photo-glyph" aria-hidden="true">＋</div>
+                <strong>选择叶片照片</strong>
+                <span>支持 JPEG 或 PNG，最大 8 MB</span>
+              </div>
+              <img id="photoPreview" class="photo-preview" alt="待识别的叶片照片">
+            </div>
+            <div class="photo-actions">
+              <label class="button" for="cameraInput"><span class="icon" aria-hidden="true">◉</span>拍照</label>
+              <label class="button secondary" for="galleryInput"><span class="icon" aria-hidden="true">▧</span>从相册选择</label>
+              <input id="cameraInput" class="file-input" type="file" accept="image/*" capture="environment">
+              <input id="galleryInput" class="file-input" type="file" accept="image/*">
+              <button id="clearPhoto" class="button quiet" type="button" hidden>移除照片</button>
+            </div>
+            <p class="privacy-note">照片仅上传用于本次识别，页面会在本机保存历史缩略图。</p>
+          </section>
+
+          <section class="result-column" aria-label="识别结果">
+            <div id="emptyResult" class="empty-result">
+              <h2>识别结果</h2>
+              <p>选择照片后开始识别。系统会给出最可能的类别和另外两个候选结果。</p>
+              <button id="recognizeButton" class="button" type="button" disabled>开始识别</button>
+            </div>
+            <div id="loadingResult" class="result-loading" aria-live="polite">
+              <span class="spinner" aria-hidden="true"></span><span>正在识别…</span>
+            </div>
+            <article id="resultContent" class="result-content" aria-live="polite"></article>
+          </section>
+        </div>
+
+        <p class="disclaimer">识别结果仅供参考，不能替代专业植保诊断。模型主要基于实验室图像训练，真实田间照片的表现可能下降；用药请遵医嘱或咨询农技员。</p>
+      </section>
+
+      <section id="page-history" class="page" aria-labelledby="historyTitle">
+        <div class="page-toolbar">
+          <div>
+            <p class="eyebrow">本设备</p>
+            <h1 id="historyTitle">识别记录</h1>
+            <p id="historyCount" class="subheading">—</p>
+          </div>
+          <div class="photo-actions">
+            <button id="refreshHistory" class="button quiet small" type="button"><span class="icon" aria-hidden="true">↻</span>刷新</button>
+            <button id="clearHistory" class="button danger small" type="button" hidden>清空</button>
+          </div>
+        </div>
+        <div id="detailView" class="detail-view"></div>
+        <div id="historyList" class="history-list"></div>
+        <div id="historyPager" class="pager" hidden>
+          <button id="prevPage" class="button quiet small" type="button">上一页</button>
+          <button id="nextPage" class="button quiet small" type="button">下一页</button>
+        </div>
+      </section>
+
+      <section id="page-about" class="page" aria-labelledby="aboutTitle">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">应用信息</p>
+            <h1 id="aboutTitle">关于叶片医生</h1>
+            <p class="subheading">版本 0.1.0</p>
+          </div>
+          <button id="refreshAbout" class="button quiet small" type="button">刷新信息</button>
+        </div>
+        <div class="about-grid">
+          <div>
+            <section class="about-section">
+              <h2>当前服务</h2>
+              <div id="modelInfo">
+                <div class="info-row"><span>连接状态</span><span>读取中</span></div>
+              </div>
+            </section>
+            <section class="about-section">
+              <h2>数据与隐私</h2>
+              <p class="about-copy">照片在本次识别后保存在当前设备的浏览器存储中，用于显示本机历史记录。清空记录会删除本机保存的图片，并删除该设备对应的服务端识别记录。</p>
+            </section>
+          </div>
+          <div>
+            <section class="about-section">
+              <h2>项目统计</h2>
+              <div id="statsInfo">
+                <div class="info-row"><span>统计数据</span><span>读取中</span></div>
+              </div>
+            </section>
+            <section class="about-section">
+              <h2>重要说明</h2>
+              <div class="about-warning">模型主要在 PlantVillage 实验室图像上训练。自然光照、背景和拍摄角度会影响识别效果。结果是辅助初筛信息，不是诊断结论，也不能用于直接决定用药。</div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">叶片医生 · 植物叶片病害辅助初筛</footer>
+  </div>
+
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const STORAGE_API = "plantdoctor.web.apiBase";
+      const STORAGE_DEVICE = "plantdoctor.web.deviceId";
+      const PAGE_SIZE = 50;
+      const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+      let selectedFile = null;
+      let selectedUrl = null;
+      let currentPrediction = null;
+      let historyItems = [];
+      let historyTotal = 0;
+      let historyOffset = 0;
+      let classes = [];
+      let currentFeedbackStage = "start";
+
+      function randomId() {
+        if (window.crypto && crypto.getRandomValues) {
+          const bytes = new Uint8Array(16);
+          crypto.getRandomValues(bytes);
+          return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+        }
+        return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+      }
+      let deviceId = localStorage.getItem(STORAGE_DEVICE);
+      if (!deviceId || deviceId.length < 16) {
+        deviceId = randomId();
+        localStorage.setItem(STORAGE_DEVICE, deviceId);
+      }
+
+      function defaultApiBase() {
+        if (location.protocol === "http:" || location.protocol === "https:") {
+          if (location.port && location.port !== "8000") return `${location.protocol}//${location.hostname}:8000`;
+          return location.origin;
+        }
+        return "http://127.0.0.1:8000";
+      }
+      const savedBase = localStorage.getItem(STORAGE_API);
+      $("apiBase").value = savedBase || defaultApiBase();
+      $("apiDocs").href = `${normalizeBase($("apiBase").value)}/docs`;
+
+      function normalizeBase(value) {
+        return String(value || "").trim().replace(/\/+$/, "");
+      }
+      function apiUrl(path) { return `${normalizeBase($("apiBase").value)}${path}`; }
+      function setConnection(online, text) {
+        const node = $("connection");
+        node.classList.toggle("online", Boolean(online));
+        node.classList.toggle("offline", online === false);
+        $("connectionText").textContent = text;
+      }
+      function showNotice(message, success = false) {
+        const notice = $("notice");
+        notice.textContent = message;
+        notice.classList.toggle("success", success);
+        notice.classList.add("visible");
+        window.clearTimeout(showNotice.timeout);
+        showNotice.timeout = window.setTimeout(() => notice.classList.remove("visible"), 5200);
+      }
+      async function request(path, options = {}) {
+        const headers = new Headers(options.headers || {});
+        headers.set("X-Device-ID", deviceId);
+        const response = await fetch(apiUrl(path), { ...options, headers });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.detail || `服务返回 ${response.status}`);
+        return body;
+      }
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        })[char]);
+      }
+      function formatDate(value) {
+        if (!value) return "时间未知";
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? String(value).replace("T", " ").slice(0, 16) :
+          new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+      }
+      function percent(value) { return `${Math.round((Number(value) || 0) * 100)}%`; }
+
+      const photoDb = {
+        db: null,
+        open() {
+          if (this.db) return Promise.resolve(this.db);
+          return new Promise((resolve, reject) => {
+            const open = indexedDB.open("plantdoctor-web", 1);
+            open.onupgradeneeded = () => open.result.createObjectStore("photos");
+            open.onsuccess = () => { this.db = open.result; resolve(this.db); };
+            open.onerror = () => reject(open.error);
+          });
+        },
+        async put(id, blob) {
+          try {
+            const db = await this.open();
+            await new Promise((resolve, reject) => {
+              const tx = db.transaction("photos", "readwrite");
+              tx.objectStore("photos").put(blob, id);
+              tx.oncomplete = resolve;
+              tx.onerror = () => reject(tx.error);
+            });
+          } catch (_) { /* History metadata remains available if local photo storage is unavailable. */ }
+        },
+        async get(id) {
+          try {
+            const db = await this.open();
+            return await new Promise((resolve, reject) => {
+              const tx = db.transaction("photos", "readonly");
+              const get = tx.objectStore("photos").get(id);
+              get.onsuccess = () => resolve(get.result || null);
+              get.onerror = () => reject(get.error);
+            });
+          } catch (_) { return null; }
+        },
+        async clear() {
+          try {
+            const db = await this.open();
+            await new Promise((resolve, reject) => {
+              const tx = db.transaction("photos", "readwrite");
+              tx.objectStore("photos").clear();
+              tx.oncomplete = resolve;
+              tx.onerror = () => reject(tx.error);
+            });
+          } catch (_) { /* The API history is still cleared. */ }
+        },
+      };
+
+      function switchPage(page) {
+        document.querySelectorAll(".nav button").forEach((button) => {
+          if (button.dataset.page === page) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        document.querySelectorAll(".page").forEach((section) => section.classList.toggle("active", section.id === `page-${page}`));
+        if (page === "history") loadHistory(0);
+        if (page === "about") loadAbout();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      document.querySelectorAll(".nav button").forEach((button) => button.addEventListener("click", () => switchPage(button.dataset.page)));
+
+      function setSelectedPhoto(file) {
+        if (selectedUrl) URL.revokeObjectURL(selectedUrl);
+        selectedFile = file || null;
+        selectedUrl = selectedFile ? URL.createObjectURL(selectedFile) : null;
+        $("photoZone").classList.toggle("has-image", Boolean(selectedFile));
+        $("photoPreview").src = selectedUrl || "";
+        $("clearPhoto").hidden = !selectedFile;
+        $("recognizeButton").disabled = !selectedFile;
+        $("emptyResult").style.display = "block";
+        $("loadingResult").classList.remove("visible");
+        $("resultContent").classList.remove("visible");
+        currentPrediction = null;
+      }
+      ["cameraInput", "galleryInput"].forEach((id) => $(id).addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = "";
+        if (!file) return;
+        if (!file.type.startsWith("image/")) return showNotice("请选择图片文件。");
+        if (file.size > MAX_IMAGE_BYTES) return showNotice("图片超过 8 MB，请压缩后再试。");
+        setSelectedPhoto(file);
+      }));
+      $("clearPhoto").addEventListener("click", () => setSelectedPhoto(null));
+
+      function createCandidate(item) {
+        const row = document.createElement("div");
+        row.className = "candidate";
+        const name = document.createElement("span");
+        name.className = "candidate-name";
+        name.textContent = item.label_cn || item.label || "未命名类别";
+        const track = document.createElement("span");
+        track.className = "candidate-track";
+        const fill = document.createElement("span");
+        fill.style.width = `${Math.max(0, Math.min(100, Number(item.prob) * 100))}%`;
+        track.append(fill);
+        const probability = document.createElement("span");
+        probability.className = "candidate-prob";
+        probability.textContent = percent(item.prob);
+        row.append(name, track, probability);
+        return row;
+      }
+      function renderPrediction(prediction, fromHistory = false) {
+        const top3 = Array.isArray(prediction.top3) ? prediction.top3 : [];
+        const top = top3[0];
+        if (!top) throw new Error("服务没有返回识别候选");
+        currentPrediction = prediction;
+        const result = $("resultContent");
+        result.replaceChildren();
+        const warning = document.createElement("div");
+        warning.className = `confidence-warning${Number(top.prob) < 0.6 ? " visible" : ""}`;
+        warning.textContent = "模型不太确定，建议换个角度再拍，或咨询农技员。";
+        result.append(warning);
+        const kicker = document.createElement("p");
+        kicker.className = "result-kicker";
+        kicker.textContent = "最可能的结果";
+        const name = document.createElement("h2");
+        name.className = "result-name";
+        name.textContent = top.label_cn || top.label || "未命名类别";
+        const confidence = document.createElement("div");
+        confidence.className = "confidence-line";
+        confidence.innerHTML = `<span class="confidence-track"><span class="confidence-fill" style="width:${Math.max(0, Math.min(100, Number(top.prob) * 100))}%"></span></span><span class="confidence-value">${escapeHtml(percent(top.prob))}</span>`;
+        const note = document.createElement("p");
+        note.className = "microcopy";
+        note.textContent = "模型置信度不等于诊断准确率。";
+        const heading = document.createElement("h3");
+        heading.className = "candidate-heading";
+        heading.textContent = "其他可能";
+        const candidates = document.createElement("div");
+        candidates.className = "candidate-list";
+        top3.slice(1).forEach((item) => candidates.append(createCandidate(item)));
+        const meta = document.createElement("p");
+        meta.className = "result-meta";
+        meta.textContent = `模型 ${prediction.model || prediction.model_name || "—"} · 耗时 ${Math.round(Number(prediction.elapsed_ms) || 0)} ms`;
+        result.append(kicker, name, confidence, note, heading, candidates, meta);
+        const actions = document.createElement("div");
+        actions.className = "feedback-actions";
+        const correct = document.createElement("button");
+        correct.className = "button secondary";
+        correct.type = "button";
+        correct.textContent = "结果正确";
+        correct.addEventListener("click", () => submitFeedback(prediction.request_id || prediction.id, true));
+        const wrong = document.createElement("button");
+        wrong.className = "button quiet";
+        wrong.type = "button";
+        wrong.textContent = "识别有误";
+        wrong.addEventListener("click", () => showFeedbackFlow(prediction.request_id || prediction.id));
+        actions.append(correct, wrong);
+        if (!fromHistory) result.append(actions);
+        $("emptyResult").style.display = "none";
+        $("loadingResult").classList.remove("visible");
+        result.classList.add("visible");
+      }
+
+      async function recognize() {
+        if (!selectedFile) return;
+        $("recognizeButton").disabled = true;
+        $("emptyResult").style.display = "none";
+        $("resultContent").classList.remove("visible");
+        $("loadingResult").classList.add("visible");
+        try {
+          const form = new FormData();
+          form.append("file", selectedFile, selectedFile.name || "leaf.jpg");
+          const result = await request("/predict", { method: "POST", body: form });
+          result.created_at = new Date().toISOString();
+          await photoDb.put(result.request_id, selectedFile);
+          renderPrediction(result);
+          loadHistory(0, true);
+        } catch (error) {
+          $("loadingResult").classList.remove("visible");
+          $("emptyResult").style.display = "block";
+          showNotice(error.message || "识别失败，请检查网络和服务地址。");
+        } finally {
+          $("recognizeButton").disabled = !selectedFile;
+        }
+      }
+      $("recognizeButton").addEventListener("click", recognize);
+
+      function showFeedbackFlow(requestId) {
+        if (!requestId) return showNotice("记录编号缺失，无法提交反馈。");
+        currentFeedbackStage = "start";
+        const flow = document.createElement("div");
+        flow.id = "feedbackFlow";
+        flow.className = "feedback-flow visible";
+        $("resultContent").append(flow);
+        renderFeedbackStage(flow, requestId);
+        flow.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      function renderFeedbackStage(flow, requestId) {
+        flow.replaceChildren();
+        if (currentFeedbackStage === "done") {
+          const message = document.createElement("p");
+          message.textContent = "感谢反馈，这条记录已更新。";
+          flow.append(message);
+          return;
+        }
+        if (currentFeedbackStage === "start") {
+          const title = document.createElement("p");
+          title.textContent = "你知道正确的病害吗？";
+          const known = document.createElement("button");
+          known.className = "button small";
+          known.type = "button";
+          known.textContent = "我知道，选择作物";
+          known.addEventListener("click", async () => {
+            try {
+              if (!classes.length) classes = await request("/classes");
+              currentFeedbackStage = "crop";
+              renderFeedbackStage(flow, requestId);
+            } catch (error) { showNotice(error.message || "暂时无法读取类别目录。"); }
+          });
+          const uncertain = document.createElement("button");
+          uncertain.className = "button quiet small";
+          uncertain.type = "button";
+          uncertain.textContent = "不确定，只记录识别错误";
+          uncertain.addEventListener("click", () => submitFeedback(requestId, false, null, flow));
+          flow.append(title, known, document.createTextNode(" "), uncertain);
+          return;
+        }
+        if (currentFeedbackStage === "crop") {
+          const back = document.createElement("button");
+          back.className = "flow-back";
+          back.type = "button";
+          back.textContent = "← 返回";
+          back.addEventListener("click", () => { currentFeedbackStage = "start"; renderFeedbackStage(flow, requestId); });
+          const title = document.createElement("p");
+          title.textContent = "选择作物";
+          const list = document.createElement("div");
+          list.className = "choice-list";
+          [...new Set(classes.map((item) => item.crop_cn).filter(Boolean))].sort().forEach((crop) => {
+            const button = document.createElement("button");
+            button.className = "choice";
+            button.type = "button";
+            button.textContent = crop;
+            button.addEventListener("click", () => { currentFeedbackStage = `disease:${crop}`; renderFeedbackStage(flow, requestId); });
+            list.append(button);
+          });
+          flow.append(back, title, list);
+          return;
+        }
+        const crop = currentFeedbackStage.slice("disease:".length);
+        const back = document.createElement("button");
+        back.className = "flow-back";
+        back.type = "button";
+        back.textContent = `← ${crop}`;
+        back.addEventListener("click", () => { currentFeedbackStage = "crop"; renderFeedbackStage(flow, requestId); });
+        const title = document.createElement("p");
+        title.textContent = "选择具体病害";
+        const list = document.createElement("div");
+        list.className = "choice-list diseases";
+        classes.filter((item) => item.crop_cn === crop).forEach((item) => {
+          const button = document.createElement("button");
+          button.className = "choice";
+          button.type = "button";
+          button.textContent = item.label_cn || item.label;
+          button.addEventListener("click", () => submitFeedback(requestId, false, item.label, flow));
+          list.append(button);
+        });
+        flow.append(back, title, list);
+      }
+      async function submitFeedback(requestId, isCorrect, trueLabel = null, flow = null) {
+        if (!requestId) return showNotice("记录编号缺失，无法提交反馈。");
+        try {
+          await request("/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ request_id: requestId, is_correct: isCorrect, true_label: trueLabel }),
+          });
+          showNotice("感谢反馈。", true);
+          if (flow) {
+            currentFeedbackStage = "done";
+            renderFeedbackStage(flow, requestId);
+          }
+          if (currentPrediction && (currentPrediction.request_id || currentPrediction.id) === requestId) {
+            currentPrediction.feedback = { is_correct: isCorrect, true_label: trueLabel };
+          }
+          loadHistory(historyOffset, true);
+        } catch (error) { showNotice(error.message || "反馈未提交，请重试。"); }
+      }
+
+      async function renderHistoryRow(record) {
+        const row = document.createElement("div");
+        row.className = "history-row";
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
+        row.setAttribute("aria-label", `${record.top3?.[0]?.label_cn || record.top1_label || "识别记录"}，${formatDate(record.created_at)}`);
+        const image = document.createElement("img");
+        image.className = "history-thumb";
+        image.alt = "";
+        image.src = "/leaf-placeholder.svg";
+        const blob = await photoDb.get(record.id);
+        if (blob) image.src = URL.createObjectURL(blob);
+        const text = document.createElement("div");
+        const top = record.top3?.[0];
+        const title = document.createElement("p");
+        title.className = "history-title";
+        title.textContent = top?.label_cn || record.top1_label || "未识别";
+        const meta = document.createElement("p");
+        meta.className = "history-meta";
+        const feedback = record.feedback ? (record.feedback.is_correct ? " · 已确认" : " · 已纠错") : "";
+        meta.textContent = `${formatDate(record.created_at)}${feedback}`;
+        text.append(title, meta);
+        const probability = document.createElement("span");
+        probability.className = "history-prob";
+        probability.textContent = percent(top?.prob ?? record.top1_prob);
+        row.append(image, text, probability);
+        const open = () => openRecordDetail(record);
+        row.addEventListener("click", open);
+        row.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
+        return row;
+      }
+      async function loadHistory(offset = 0, quiet = false) {
+        if (!quiet) {
+          $("historyList").innerHTML = '<div class="empty-state"><span class="spinner" aria-hidden="true"></span><p>正在读取记录…</p></div>';
+          $("detailView").classList.remove("visible");
+        }
+        try {
+          const page = await request(`/history?limit=${PAGE_SIZE}&offset=${offset}`);
+          historyItems = page.items || [];
+          historyTotal = Number(page.total) || 0;
+          historyOffset = Number(page.offset) || 0;
+          $("historyCount").textContent = `共 ${historyTotal} 条`;
+          $("clearHistory").hidden = historyTotal === 0;
+          const list = $("historyList");
+          list.replaceChildren();
+          if (!historyItems.length) {
+            list.innerHTML = '<div class="empty-state"><strong>还没有识别记录</strong><p>拍一张叶片照片，记录会出现在这里。</p><button class="button" type="button" data-go-recognize>去识别</button></div>';
+            list.querySelector("[data-go-recognize]").addEventListener("click", () => switchPage("recognize"));
+          } else {
+            for (const record of historyItems) list.append(await renderHistoryRow(record));
+          }
+          $("historyPager").hidden = historyTotal <= PAGE_SIZE;
+          $("prevPage").disabled = historyOffset === 0;
+          $("nextPage").disabled = historyOffset + PAGE_SIZE >= historyTotal;
+        } catch (error) {
+          if (!quiet) $("historyList").innerHTML = '<div class="empty-state"><strong>记录读取失败</strong><p>检查服务连接后重试。</p><button class="button secondary" type="button" data-retry-history>重试</button></div>';
+          const retry = $("historyList").querySelector("[data-retry-history]");
+          if (retry) retry.addEventListener("click", () => loadHistory(offset));
+          showNotice(error.message || "读取历史失败。");
+        }
+      }
+      $("refreshHistory").addEventListener("click", () => loadHistory(0));
+      $("prevPage").addEventListener("click", () => loadHistory(Math.max(0, historyOffset - PAGE_SIZE)));
+      $("nextPage").addEventListener("click", () => loadHistory(historyOffset + PAGE_SIZE));
+
+      async function openRecordDetail(record) {
+        const detail = $("detailView");
+        detail.replaceChildren();
+        detail.classList.add("visible");
+        const back = document.createElement("button");
+        back.className = "flow-back";
+        back.type = "button";
+        back.textContent = "← 返回记录列表";
+        back.addEventListener("click", () => detail.classList.remove("visible"));
+        detail.append(back);
+        try {
+          const full = await request(`/history/${encodeURIComponent(record.id)}`);
+          const blob = await photoDb.get(full.id);
+          if (blob) {
+            const image = document.createElement("img");
+            image.className = "detail-image";
+            image.alt = "本机保存的叶片照片";
+            image.src = URL.createObjectURL(blob);
+            detail.append(image);
+          }
+          const top = full.top3?.[0];
+          const title = document.createElement("h2");
+          title.textContent = top?.label_cn || full.top1_label || "识别记录";
+          detail.append(title);
+          const candidates = document.createElement("div");
+          candidates.className = "candidate-list";
+          (full.top3 || []).forEach((item) => candidates.append(createCandidate(item)));
+          detail.append(candidates);
+          const values = document.createElement("dl");
+          values.className = "detail-values";
+          const entries = [
+            ["时间", formatDate(full.created_at)],
+            ["模型", full.model_name || "—"],
+            ["推理耗时", `${Math.round(Number(full.elapsed_ms) || 0)} ms`],
+            ["反馈", full.feedback ? (full.feedback.is_correct ? "已确认正确" : `已纠错${full.feedback.true_label ? `：${full.feedback.true_label}` : ""}`) : "未反馈"],
+          ];
+          entries.forEach(([label, value]) => {
+            const dt = document.createElement("dt"); dt.textContent = label;
+            const dd = document.createElement("dd"); dd.textContent = value;
+            values.append(dt, dd);
+          });
+          detail.append(values);
+          const feedback = document.createElement("button");
+          feedback.className = "button secondary small";
+          feedback.type = "button";
+          feedback.textContent = "提交纠错";
+          feedback.addEventListener("click", () => {
+            switchPage("recognize");
+            showFeedbackFlow(full.id);
+          });
+          if (!full.feedback) detail.append(feedback);
+          detail.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (error) {
+          const message = document.createElement("p");
+          message.className = "about-copy";
+          message.textContent = error.message || "无法读取这条记录。";
+          detail.append(message);
+        }
+      }
+
+      $("clearHistory").addEventListener("click", async () => {
+        if (!historyTotal) return;
+        if (!window.confirm(`确定清空这台设备的 ${historyTotal} 条识别记录？此操作不可恢复。`)) return;
+        try {
+          const result = await request("/history", { method: "DELETE" });
+          await photoDb.clear();
+          historyItems = [];
+          historyTotal = 0;
+          $("detailView").classList.remove("visible");
+          await loadHistory(0);
+          showNotice(`已清空 ${result.deleted || 0} 条记录。`, true);
+        } catch (error) { showNotice(error.message || "清空失败。"); }
+      });
+
+      async function loadAbout() {
+        try {
+          const [health, stats] = await Promise.all([request("/health"), request("/stats")]);
+          $("modelInfo").innerHTML = "";
+          [
+            ["连接状态", "在线"],
+            ["模型结构", health.architecture || health.model || "—"],
+            ["推理后端", health.model || "—"],
+            ["类别数量", `${health.classes || 0} 种`],
+            ["模型版本", health.version || "—"],
+            ["输入尺寸", `${health.img_size || 224} × ${health.img_size || 224}`],
+          ].forEach(([key, value]) => appendInfoRow($("modelInfo"), key, value));
+          $("statsInfo").innerHTML = "";
+          [
+            ["识别次数", String(stats.predictions ?? 0)],
+            ["收到反馈", String(stats.feedback ?? 0)],
+            ["确认正确", String(stats.feedback_correct ?? 0)],
+            ["匿名设备数", String(stats.users ?? 0)],
+          ].forEach(([key, value]) => appendInfoRow($("statsInfo"), key, value));
+        } catch (error) {
+          $("modelInfo").innerHTML = "";
+          appendInfoRow($("modelInfo"), "连接状态", "暂不可用");
+          $("statsInfo").innerHTML = "";
+          appendInfoRow($("statsInfo"), "统计数据", "暂不可用");
+          showNotice(error.message || "无法读取服务信息。");
+        }
+      }
+      function appendInfoRow(parent, key, value) {
+        const row = document.createElement("div");
+        row.className = "info-row";
+        const name = document.createElement("span"); name.textContent = key;
+        const text = document.createElement("span"); text.textContent = value;
+        row.append(name, text);
+        parent.append(row);
+      }
+
+      async function connect() {
+        const base = normalizeBase($("apiBase").value);
+        if (!/^https?:\/\//i.test(base)) return showNotice("请输入以 http:// 或 https:// 开头的服务地址。");
+        localStorage.setItem(STORAGE_API, base);
+        $("apiBase").value = base;
+        $("apiDocs").href = `${base}/docs`;
+        setConnection(null, "正在连接");
+        try {
+          await request(`/users/${encodeURIComponent(deviceId)}`, { method: "POST" });
+          const health = await request("/health");
+          setConnection(true, `${health.architecture || health.model} · 在线`);
+          classes = await request("/classes").catch(() => classes);
+          if (document.querySelector('[data-page="about"][aria-current="page"]')) loadAbout();
+          showNotice("服务连接成功。", true);
+        } catch (error) {
+          setConnection(false, "服务未连接");
+          showNotice(error.message || "无法连接服务，请检查地址和网络。");
+        }
+      }
+      $("connectButton").addEventListener("click", connect);
+      $("apiBase").addEventListener("keydown", (event) => { if (event.key === "Enter") connect(); });
+      $("refreshAbout").addEventListener("click", loadAbout);
+
+      connect();
+    })();
+  </script>
+</body>
+</html>

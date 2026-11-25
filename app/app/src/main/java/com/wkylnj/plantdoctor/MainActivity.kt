@@ -4,15 +4,30 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wkylnj.plantdoctor.data.UiState
+import com.wkylnj.plantdoctor.data.Screen
+import com.wkylnj.plantdoctor.ui.AboutScreen
+import com.wkylnj.plantdoctor.ui.DetailScreen
+import com.wkylnj.plantdoctor.ui.FeedbackSheet
+import com.wkylnj.plantdoctor.ui.HistoryScreen
 import com.wkylnj.plantdoctor.ui.MainScreen
 import com.wkylnj.plantdoctor.ui.MainViewModel
 import java.io.File
@@ -33,6 +48,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val vm: MainViewModel = viewModel()
+            var screen by remember { mutableStateOf<Screen>(Screen.Home) }
+            var feedbackRequestId by remember { mutableStateOf<String?>(null) }
+            var showPermissionHelp by remember { mutableStateOf(false) }
+
+            BackHandler(enabled = screen != Screen.Home || feedbackRequestId != null) {
+                if (feedbackRequestId != null) feedbackRequestId = null
+                else screen = (screen as? Screen.Detail)?.from ?: Screen.Home
+            }
 
             // 相册选择
             val galleryLauncher = rememberLauncherForActivityResult(
@@ -60,21 +83,65 @@ class MainActivity : ComponentActivity() {
                 ActivityResultContracts.RequestPermission()
             ) { granted ->
                 if (granted) launchCamera(cameraLauncher)
+                else showPermissionHelp = true
             }
 
             LaunchedEffect(Unit) { vm.checkHealth() }
+            LaunchedEffect(screen) {
+                when (val current = screen) {
+                    Screen.History -> vm.refreshHistory()
+                    is Screen.Detail -> vm.loadRecord(current.recordId)
+                    else -> Unit
+                }
+            }
 
-            MainScreen(
-                vm = vm,
-                onPickCamera = {
-                    val granted = ContextCompat.checkSelfPermission(
-                        this, Manifest.permission.CAMERA
-                    ) == PackageManager.PERMISSION_GRANTED
-                    if (granted) launchCamera(cameraLauncher)
-                    else permLauncher.launch(Manifest.permission.CAMERA)
-                },
-                onPickGallery = { galleryLauncher.launch("image/*") },
-            )
+            when (val current = screen) {
+                Screen.Home -> MainScreen(
+                    vm = vm,
+                    onPickCamera = {
+                        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                        if (granted) launchCamera(cameraLauncher) else permLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    onPickGallery = { galleryLauncher.launch("image/*") },
+                    onOpenHistory = { screen = Screen.History },
+                    onOpenAbout = { screen = Screen.About },
+                    onOpenDetail = { id -> screen = Screen.Detail(id, Screen.Home) },
+                    onCorrect = { id -> vm.beginFeedback(); feedbackRequestId = id },
+                )
+                Screen.History -> HistoryScreen(
+                    vm = vm,
+                    onBack = { screen = Screen.Home },
+                    onOpenDetail = { id -> screen = Screen.Detail(id, Screen.History) },
+                    onGoHome = { screen = Screen.Home },
+                )
+                is Screen.Detail -> DetailScreen(
+                    vm = vm,
+                    onBack = { screen = current.from },
+                    onCorrect = { id -> vm.beginFeedback(); feedbackRequestId = id },
+                )
+                Screen.About -> AboutScreen(vm = vm, onBack = { screen = Screen.Home })
+            }
+
+            feedbackRequestId?.let { id ->
+                FeedbackSheet(vm = vm, requestId = id, onDismiss = { feedbackRequestId = null })
+            }
+
+            if (showPermissionHelp) {
+                AlertDialog(
+                    onDismissRequest = { showPermissionHelp = false },
+                    title = { Text("需要相机权限") },
+                    text = { Text("允许相机权限后才能直接拍照。你也可以从相册选择已有照片。") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showPermissionHelp = false
+                            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+                        }) { Text("去设置") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showPermissionHelp = false; galleryLauncher.launch("image/*") }) { Text("从相册选择") }
+                    },
+                )
+            }
         }
     }
 

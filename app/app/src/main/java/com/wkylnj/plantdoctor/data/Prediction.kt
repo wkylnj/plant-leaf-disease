@@ -25,7 +25,58 @@ data class Health(
     val model: String,
     val version: String,
     val classes: Int,
+    val architecture: String = model,
+    val imageSize: Int = 224,
 )
+
+data class HistoryRecord(
+    val id: String,
+    val createdAt: String,
+    val top3: List<LabelProb>,
+    val model: String,
+    val elapsedMs: Double,
+    val feedback: FeedbackRecord?,
+    val imagePath: String? = null,
+) {
+    val top: LabelProb? get() = top3.firstOrNull()
+}
+
+data class HistoryPage(
+    val items: List<HistoryRecord>,
+    val total: Int,
+)
+
+data class FeedbackRecord(
+    val isCorrect: Boolean,
+    val trueLabel: String?,
+    val createdAt: String?,
+)
+
+data class DiseaseClass(
+    val label: String,
+    val labelCn: String,
+    val cropCn: String,
+)
+
+sealed interface HistoryState {
+    data object Loading : HistoryState
+    data class Loaded(val records: List<HistoryRecord>, val total: Int) : HistoryState
+    data class Failed(val message: String) : HistoryState
+}
+
+sealed interface DetailState {
+    data object Loading : DetailState
+    data class Loaded(val record: HistoryRecord) : DetailState
+    data object Missing : DetailState
+    data class Failed(val message: String) : DetailState
+}
+
+sealed interface Screen {
+    data object Home : Screen
+    data object History : Screen
+    data class Detail(val recordId: String, val from: Screen) : Screen
+    data object About : Screen
+}
 
 /** 上传/识别过程中的界面状态。 */
 sealed interface UiState {

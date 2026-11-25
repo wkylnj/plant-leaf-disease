@@ -84,7 +84,9 @@ def softmax(x: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------- 后端
 class BasePredictor:
     name = "base"
+    model_name = "unknown"
     version = "0"
+    img_size = 224
     classes: list[str] = []
 
     def predict(self, img_bytes: bytes) -> tuple[list[dict[str, Any]], float]:
@@ -100,6 +102,7 @@ class FakePredictor(BasePredictor):
     """
 
     name = "fake"
+    model_name = "fake"
     version = "0.0.0-fake"
 
     def __init__(self, classes: list[str]):
@@ -142,6 +145,15 @@ class OnnxPredictor(BasePredictor):
         self.onnx_path = Path(onnx_path)
         self.classes = classes
         self.img_size = img_size
+        meta_path = self.onnx_path.with_name("onnx_meta.json")
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+        fallback_name = self.onnx_path.parent.name
+        if fallback_name == "models":
+            fallback_name = "ONNX 模型"
+        self.model_name = str(meta.get("model") or fallback_name)
         # CPU 上 2 线程通常最划算；设 0 会让 ORT 用满所有核，反而和别的进程抢
         so = ort.SessionOptions()
         so.intra_op_num_threads = 2
@@ -189,6 +201,7 @@ class TorchPredictor(BasePredictor):
         ckpt = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
         self.classes = ckpt["classes"]
         model_name = (ckpt.get("args") or {}).get("model", "resnet18")
+        self.model_name = model_name
         model, _meta = build_model(model_name, len(self.classes), pretrained=False)
         model.load_state_dict(ckpt["model"])
         model.eval()
@@ -201,7 +214,7 @@ class TorchPredictor(BasePredictor):
         t0 = time.perf_counter()
         x = self.torch.from_numpy(preprocess(img_bytes, self.img_size))
         with self.torch.no_grad():
-            logits = self.model(x[None, ...]).numpy()
+            logits = self.model(x).numpy()
         probs = softmax(logits)[0]
         order = np.argsort(-probs)[:3]
         top3 = [

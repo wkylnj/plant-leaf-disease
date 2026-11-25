@@ -1,5 +1,7 @@
 package com.wkylnj.plantdoctor.ui
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,19 +18,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,226 +49,265 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wkylnj.plantdoctor.data.LabelProb
 import com.wkylnj.plantdoctor.data.UiState
 
-// ---------------------------------------------------------------- 设计基调
-// 为什么用这套色：这是农业工具，不是社交产品。深绿主色给出"植物/生长"的
-// 直觉，米白底降低户外强光下的眩光，橙色只留给"高置信度"的强调。
-private val LeafGreen = Color(0xFF1F6F4A)
-private val LeafGreenDark = Color(0xFF14472F)
-private val Paper = Color(0xFFF7F5EF)
-private val Ink = Color(0xFF1A1A1A)
-private val Muted = Color(0xFF6B6B6B)
-private val Warn = Color(0xFFB45309)
-private val ErrRed = Color(0xFFB91C1C)
+private val Leaf = Color(0xFF246B4A)
+private val LeafDark = Color(0xFF174A35)
+private val Paper = Color(0xFFF5F7F2)
+private val Ink = Color(0xFF19231D)
+private val Muted = Color(0xFF59665E)
+private val Line = Color(0xFFDCE4DB)
+private val Warning = Color(0xFFA65312)
+private val Danger = Color(0xFF9F3030)
 
 @Composable
-fun MainScreen(vm: MainViewModel, onPickCamera: () -> Unit, onPickGallery: () -> Unit) {
+fun MainScreen(
+    vm: MainViewModel,
+    onPickCamera: () -> Unit,
+    onPickGallery: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenDetail: (String) -> Unit,
+    onCorrect: (String) -> Unit,
+) {
     val state by vm.state.collectAsStateWithLifecycle()
     val health by vm.health.collectAsStateWithLifecycle()
-    val fbSent by vm.feedbackSent.collectAsStateWithLifecycle()
+    val feedbackDoneIds by vm.feedbackDoneIds.collectAsStateWithLifecycle()
+    val feedbackError by vm.feedbackError.collectAsStateWithLifecycle()
 
     Surface(color = Paper, modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Header(health?.model)
+            Row(
+                modifier = Modifier.fillMaxWidth().height(60.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+            ) {
+                health?.let {
+                    Text("${it.model} · ${it.classes} 类", color = Muted, fontSize = 12.sp)
+                }
+                IconButton(onClick = onOpenHistory) {
+                    Icon(Icons.Filled.History, contentDescription = "识别记录", tint = LeafDark)
+                }
+                IconButton(onClick = onOpenAbout) {
+                    Icon(Icons.Filled.Info, contentDescription = "关于叶片医生", tint = LeafDark)
+                }
+            }
 
-            Preview(state)
+            ImagePreview(state)
+
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("叶片医生", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = LeafDark)
+                Text("拍一张叶片照片，查看可能的病害", fontSize = 15.sp, color = Muted)
+            }
 
             when (state) {
-                is UiState.Idle -> PickButtons(onPickCamera, onPickGallery)
-                is UiState.Uploading -> Busy("正在识别…")
+                UiState.Idle -> PickActions(onPickCamera, onPickGallery)
+                is UiState.Picked -> PickActions(onPickCamera, onPickGallery)
+                is UiState.Uploading -> LoadingState()
                 is UiState.Done -> {
-                    val s = state as UiState.Done
-                    ResultCard(s.prediction.top3, s.prediction.elapsedMs)
-                    FeedbackRow(fbSent) { vm.sendFeedback(it) }
-                    OutlinedButton(onClick = { vm.reset() }, modifier = Modifier.fillMaxWidth()) {
-                        Text("重新拍一张")
-                    }
+                    val done = state as UiState.Done
+                    PredictionResult(
+                        top3 = done.prediction.top3,
+                        elapsedMs = done.prediction.elapsedMs,
+                        feedbackDone = done.prediction.requestId in feedbackDoneIds,
+                        feedbackError = feedbackError,
+                        onDetails = { onOpenDetail(done.prediction.requestId) },
+                        onCorrect = { onCorrect(done.prediction.requestId) },
+                        onConfirm = { vm.sendFeedback(done.prediction.requestId, true) },
+                    )
+                    OutlinedButton(
+                        onClick = vm::reset,
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(8.dp),
+                    ) { Text("重新识别", fontSize = 16.sp) }
                 }
                 is UiState.Failed -> {
-                    ErrorCard((state as UiState.Failed).message)
-                    OutlinedButton(onClick = { vm.reset() }, modifier = Modifier.fillMaxWidth()) {
-                        Text("重试")
+                    val failed = state as UiState.Failed
+                    InfoBanner(failed.message, danger = true)
+                    OutlinedButton(
+                        onClick = { failed.path?.let { vm.recognize(java.io.File(it)) } },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(8.dp),
+                    ) { Text("重试", fontSize = 16.sp) }
+                    TextButton(onClick = vm::reset, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                        Text("换一张照片", color = Leaf)
                     }
                 }
-                else -> Unit
             }
 
             Spacer(Modifier.height(4.dp))
-            Text(
-                "本应用仅用于课程演示，结果仅供参考，不能替代专业植保诊断。",
-                fontSize = 11.sp,
-                color = Muted,
-                lineHeight = 16.sp,
-            )
-        }
-    }
-}
-
-@Composable
-private fun Header(modelName: String?) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text("叶片医生", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = LeafGreenDark)
-            Text("拍一张叶片照片，看看它得了什么病", fontSize = 13.sp, color = Muted)
-        }
-        if (modelName != null) {
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(LeafGreen.copy(alpha = 0.12f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(modelName, fontSize = 10.sp, color = LeafGreen)
+            TextButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "结果仅供参考，不能替代专业诊断。用药请遵医嘱或咨询农技员。",
+                    color = Muted,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                )
             }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-private fun Preview(state: UiState) {
+private fun ImagePreview(state: UiState) {
     val path = when (state) {
         is UiState.Picked -> state.path
         is UiState.Uploading -> state.path
         is UiState.Done -> state.path
         is UiState.Failed -> state.path
-        else -> null
+        UiState.Idle -> null
     }
     Box(
-        Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFE8E4DA)),
+        modifier = Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFE5EBE4)),
         contentAlignment = Alignment.Center,
     ) {
-        if (path != null) {
-            val bmp = rememberBitmap(path)
-            if (bmp != null) {
-                androidx.compose.foundation.Image(
-                    bitmap = bmp.asImageBitmap(),
-                    contentDescription = "待识别的叶片",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Text("图片读取失败", color = Muted, fontSize = 13.sp)
-            }
+        val bitmap = path?.let { remember(it) {
+            runCatching {
+                BitmapFactory.decodeFile(it, BitmapFactory.Options().apply { inSampleSize = 2 })
+            }.getOrNull()
+        } }
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "叶片照片",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
         } else {
-            Text("还没有图片", color = Muted, fontSize = 13.sp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Filled.PhotoLibrary, contentDescription = null, tint = Leaf, modifier = Modifier.size(40.dp))
+                Text("选择一张清晰的叶片照片", color = Muted, fontSize = 14.sp)
+            }
         }
     }
 }
 
 @Composable
-private fun rememberBitmap(path: String): android.graphics.Bitmap? {
-    return androidx.compose.runtime.remember(path) {
-        runCatching {
-            val f = java.io.File(path)
-            val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
-            android.graphics.BitmapFactory.decodeFile(f.absolutePath, opts)
-        }.getOrNull()
-    }
-}
-
-@Composable
-private fun PickButtons(onCamera: () -> Unit, onGallery: () -> Unit) {
+private fun PickActions(onCamera: () -> Unit, onGallery: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Button(
             onClick = onCamera,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = LeafGreen),
-            shape = RoundedCornerShape(12.dp),
-        ) { Text("拍照识别", fontSize = 16.sp) }
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Leaf),
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Icon(Icons.Filled.CameraAlt, contentDescription = null)
+            Spacer(Modifier.width(10.dp))
+            Text("拍照识别", fontSize = 16.sp)
+        }
         OutlinedButton(
             onClick = onGallery,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-        ) { Text("从相册选择", fontSize = 15.sp) }
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
+            Spacer(Modifier.width(10.dp))
+            Text("从相册选择", fontSize = 16.sp)
+        }
     }
 }
 
 @Composable
-private fun Busy(text: String) {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+private fun LoadingState() {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        CircularProgressIndicator(color = LeafGreen, modifier = Modifier.size(36.dp))
-        Spacer(Modifier.height(12.dp))
-        Text(text, fontSize = 14.sp, color = Muted)
+        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Leaf, strokeWidth = 2.dp)
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text("正在识别…", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+            Text("通常需要 1–3 秒", fontSize = 14.sp, color = Muted)
+        }
     }
 }
 
 @Composable
-private fun ResultCard(top3: List<LabelProb>, elapsedMs: Double) {
+private fun PredictionResult(
+    top3: List<LabelProb>,
+    elapsedMs: Double,
+    feedbackDone: Boolean,
+    feedbackError: String?,
+    onDetails: () -> Unit,
+    onCorrect: () -> Unit,
+    onConfirm: () -> Unit,
+) {
     val top = top3.firstOrNull() ?: return
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("识别结果", fontSize = 12.sp, color = Muted)
-            Text(top.labelCn, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ink)
-            Text(top.label, fontSize = 11.sp, color = Muted)
-
-            val pct = (top.prob * 100).toInt()
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                LinearProgressIndicator(
-                    progress = { top.prob.toFloat() },
-                    modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)),
-                    color = if (pct >= 70) LeafGreen else Warn,
-                    trackColor = Color(0xFFEDEAE1),
-                )
-                Spacer(Modifier.width(10.dp))
-                Text("$pct%", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        if (top.prob < 0.6) {
+            InfoBanner("模型不太确定，建议再拍一张或咨询农技员。", danger = false)
+        }
+        Surface(shape = RoundedCornerShape(8.dp), color = Color.White, tonalElevation = 1.dp) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("最可能的结果", fontSize = 14.sp, color = Muted)
+                Text(top.labelCn, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = LeafDark, lineHeight = 34.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LinearProgressIndicator(
+                        progress = { top.prob.toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)),
+                        color = if (top.prob >= 0.6) Leaf else Warning,
+                        trackColor = Line,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text("${(top.prob * 100).toInt()}%", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                }
+                Text("仅为模型置信度，不代表诊断准确率", fontSize = 13.sp, color = Muted)
             }
+        }
 
-            if (top3.size > 1) {
-                Spacer(Modifier.height(4.dp))
-                Text("其他可能", fontSize = 12.sp, color = Muted)
-                top3.drop(1).forEach { other ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(other.labelCn, fontSize = 13.sp, color = Ink)
-                        Text("${(other.prob * 100).toInt()}%", fontSize = 13.sp, color = Muted)
-                    }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("其他可能", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+            top3.drop(1).forEach { candidate ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(candidate.labelCn, fontSize = 15.sp, color = Ink, modifier = Modifier.weight(1f))
+                    Text("${(candidate.prob * 100).toInt()}%", fontSize = 15.sp, color = Muted)
                 }
             }
-            Text("耗时 ${elapsedMs.toInt()} ms", fontSize = 10.sp, color = Muted)
+            Text("推理耗时 ${elapsedMs.toInt()} ms", fontSize = 13.sp, color = Muted)
+        }
+
+        OutlinedButton(
+            onClick = onDetails,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(8.dp),
+        ) { Text("查看识别详情", fontSize = 15.sp, color = Leaf) }
+
+        if (feedbackDone) {
+            Text("感谢你的反馈", color = Leaf, fontSize = 14.sp)
+        } else {
+            Text("这个结果对吗？", color = Muted, fontSize = 14.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onConfirm, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(8.dp)) {
+                    Text("是，结果正确", fontSize = 14.sp)
+                }
+                Button(
+                    onClick = onCorrect,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Leaf),
+                    shape = RoundedCornerShape(8.dp),
+                ) { Text("结果不对", fontSize = 14.sp) }
+            }
+            feedbackError?.let { Text(it, color = Danger, fontSize = 13.sp) }
         }
     }
 }
 
 @Composable
-private fun FeedbackRow(sent: Boolean, onFeedback: (Boolean) -> Unit) {
-    if (sent) {
-        Text("感谢反馈", fontSize = 13.sp, color = LeafGreen)
-        return
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("这个结果对吗？", fontSize = 13.sp, color = Muted, modifier = Modifier.weight(1f))
-        TextButton(onClick = { onFeedback(true) }) { Text("对的", color = LeafGreen) }
-        TextButton(onClick = { onFeedback(false) }) { Text("不对", color = ErrRed) }
-    }
-}
-
-@Composable
-private fun ErrorCard(message: String) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFDECEC)),
+internal fun InfoBanner(message: String, danger: Boolean) {
+    val color = if (danger) Danger else Warning
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = color.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(8.dp),
     ) {
-        Column(Modifier.padding(14.dp)) {
-            Text("出错了", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ErrRed)
-            Spacer(Modifier.height(4.dp))
-            Text(message, fontSize = 12.sp, color = ErrRed.copy(alpha = 0.85f), lineHeight = 17.sp)
-        }
+        Text(message, modifier = Modifier.padding(12.dp), color = color, fontSize = 14.sp, lineHeight = 20.sp)
     }
 }

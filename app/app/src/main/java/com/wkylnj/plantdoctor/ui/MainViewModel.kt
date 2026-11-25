@@ -1,10 +1,16 @@
 package com.wkylnj.plantdoctor.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wkylnj.plantdoctor.data.ApiClient
 import com.wkylnj.plantdoctor.data.ApiException
+import com.wkylnj.plantdoctor.data.DetailState
+import com.wkylnj.plantdoctor.data.DiseaseClass
 import com.wkylnj.plantdoctor.data.Health
+import com.wkylnj.plantdoctor.data.HistoryRecord
+import com.wkylnj.plantdoctor.data.HistoryState
+import com.wkylnj.plantdoctor.data.LocalImageStore
 import com.wkylnj.plantdoctor.data.Prediction
 import com.wkylnj.plantdoctor.data.UiState
 import kotlinx.coroutines.Dispatchers
@@ -14,14 +20,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 
-/**
- * 主界面状态机。
- *
- * 职责很窄：持有当前图片、调用 ApiClient、把结果或错误写回 UiState。
- * 不碰 Compose，不碰 Context——这样能在没有 Android 环境的 JVM 单测里跑。
- */
-class MainViewModel(private val api: ApiClient = ApiClient()) : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private val api = ApiClient(application)
+    private val imageStore = LocalImageStore(application)
 
     private val _state = MutableStateFlow<UiState>(UiState.Idle)
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -29,61 +32,187 @@ class MainViewModel(private val api: ApiClient = ApiClient()) : ViewModel() {
     private val _health = MutableStateFlow<Health?>(null)
     val health: StateFlow<Health?> = _health.asStateFlow()
 
-    /** 记录当前展示的预测，反馈时要用它的 requestId。 */
-    private var current: Prediction? = null
+    private val _history = MutableStateFlow<HistoryState>(HistoryState.Loaded(emptyList(), 0))
+    val history: StateFlow<HistoryState> = _history.asStateFlow()
 
-    private val _feedbackSent = MutableStateFlow(false)
-    val feedbackSent: StateFlow<Boolean> = _feedbackSent.asStateFlow()
+    private val _detail = MutableStateFlow<DetailState>(DetailState.Loading)
+    val detail: StateFlow<DetailState> = _detail.asStateFlow()
+
+    private val _classes = MutableStateFlow<List<DiseaseClass>>(emptyList())
+    val classes: StateFlow<List<DiseaseClass>> = _classes.asStateFlow()
+
+    private val _feedbackDoneIds = MutableStateFlow<Set<String>>(emptySet())
+    val feedbackDoneIds: StateFlow<Set<String>> = _feedbackDoneIds.asStateFlow()
+
+    private val _feedbackBusy = MutableStateFlow(false)
+    val feedbackBusy: StateFlow<Boolean> = _feedbackBusy.asStateFlow()
+
+    private val _feedbackError = MutableStateFlow<String?>(null)
+    val feedbackError: StateFlow<String?> = _feedbackError.asStateFlow()
+
+    private val _clearingHistory = MutableStateFlow(false)
+    val clearingHistory: StateFlow<Boolean> = _clearingHistory.asStateFlow()
+
+    private val _historyError = MutableStateFlow<String?>(null)
+    val historyError: StateFlow<String?> = _historyError.asStateFlow()
+
+    private val _historyLoadingMore = MutableStateFlow(false)
+    val historyLoadingMore: StateFlow<Boolean> = _historyLoadingMore.asStateFlow()
 
     fun checkHealth() {
         viewModelScope.launch {
-            _health.value = withContext(Dispatchers.IO) {
-                runCatching { api.health() }.getOrNull()
+            val result = withContext(Dispatchers.IO) { runCatching { api.health() } }
+            _health.value = result.getOrNull()
+            if (result.isSuccess) {
+                _classes.value = withContext(Dispatchers.IO) {
+                    runCatching { api.classes() }.getOrDefault(emptyList())
+                }
             }
         }
     }
 
-    /** 用户选好图片后调用，立刻开始识别。 */
     fun recognize(file: File) {
-        _feedbackSent.value = false
-        val path = file.absolutePath
-        _state.value = UiState.Uploading(path)
+        _feedbackError.value = null
+        _state.value = UiState.Uploading(file.absolutePath)
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching { api.predict(file) }
-            }
+            val result = withContext(Dispatchers.IO) { runCatching { api.predict(file) } }
             result.fold(
-                onSuccess = {
-                    current = it
-                    _state.value = UiState.Done(path, it)
+                onSuccess = { prediction ->
+                    val saved = withContext(Dispatchers.IO) { imageStore.save(prediction.requestId, file) }
+                    val displayFile = saved ?: file
+                    if (saved != null && saved != file) file.delete()
+                    _state.value = UiState.Done(displayFile.absolutePath, prediction)
+                    refreshHistory()
                 },
-                onFailure = { e ->
-                    val msg = when (e) {
-                        is ApiException -> "服务返回 ${e.code}：${e.message}"
-                        is java.net.ConnectException -> "连不上服务器，检查后端是否启动、地址是否对"
-                        is java.net.SocketTimeoutException -> "请求超时，图片可能太大或网络太慢"
-                        else -> e.message ?: e.javaClass.simpleName
-                    }
-                    _state.value = UiState.Failed(path, msg)
+                onFailure = { error ->
+                    _state.value = UiState.Failed(file.absolutePath, messageFor(error))
                 },
             )
         }
     }
 
-    fun sendFeedback(isCorrect: Boolean) {
-        val p = current ?: return
-        if (_feedbackSent.value) return
-        _feedbackSent.value = true
+    fun refreshHistory() {
+        _history.value = HistoryState.Loading
+        _historyError.value = null
+        _historyLoadingMore.value = false
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                runCatching { api.feedback(p.requestId, isCorrect) }
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val page = api.history()
+                    page.copy(items = page.items.map { record ->
+                        record.copy(imagePath = imageStore.find(record.id)?.absolutePath)
+                    })
+                }
             }
+            _history.value = result.fold(
+                onSuccess = { HistoryState.Loaded(it.items, it.total) },
+                onFailure = { HistoryState.Failed(messageFor(it)) },
+            )
+        }
+    }
+
+    fun loadMoreHistory() {
+        val loaded = _history.value as? HistoryState.Loaded ?: return
+        if (_historyLoadingMore.value || loaded.records.size >= loaded.total) return
+        _historyLoadingMore.value = true
+        _historyError.value = null
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val page = api.history(offset = loaded.records.size)
+                    page.copy(items = page.items.map { record ->
+                        record.copy(imagePath = imageStore.find(record.id)?.absolutePath)
+                    })
+                }
+            }
+            _historyLoadingMore.value = false
+            result.fold(
+                onSuccess = { page ->
+                    val latest = _history.value as? HistoryState.Loaded ?: loaded
+                    _history.value = HistoryState.Loaded(latest.records + page.items, page.total)
+                },
+                onFailure = { _historyError.value = messageFor(it) },
+            )
+        }
+    }
+
+    fun loadRecord(recordId: String) {
+        _detail.value = DetailState.Loading
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    api.historyRecord(recordId)?.let { record ->
+                        record.copy(imagePath = imageStore.find(record.id)?.absolutePath)
+                    }
+                }
+            }
+            _detail.value = result.fold(
+                onSuccess = { record -> if (record == null) DetailState.Missing else DetailState.Loaded(record) },
+                onFailure = { DetailState.Failed(messageFor(it)) },
+            )
+        }
+    }
+
+    fun sendFeedback(requestId: String, isCorrect: Boolean, trueLabel: String? = null) {
+        if (_feedbackBusy.value || requestId in _feedbackDoneIds.value) return
+        _feedbackBusy.value = true
+        _feedbackError.value = null
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { api.feedback(requestId, isCorrect, trueLabel) }
+            }
+            _feedbackBusy.value = false
+            result.fold(
+                onSuccess = {
+                    _feedbackDoneIds.value = _feedbackDoneIds.value + requestId
+                    refreshHistory()
+                    loadRecord(requestId)
+                },
+                onFailure = { _feedbackError.value = messageFor(it) },
+            )
+        }
+    }
+
+    fun beginFeedback() {
+        _feedbackError.value = null
+    }
+
+    fun clearHistory() {
+        if (_clearingHistory.value) return
+        _clearingHistory.value = true
+        _historyError.value = null
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val count = api.clearHistory()
+                    imageStore.clear()
+                    count
+                }
+            }
+            _clearingHistory.value = false
+            result.fold(
+                onSuccess = {
+                    _history.value = HistoryState.Loaded(emptyList(), 0)
+                    _feedbackDoneIds.value = emptySet()
+                    _state.value = UiState.Idle
+                },
+                onFailure = { _historyError.value = messageFor(it) },
+            )
         }
     }
 
     fun reset() {
-        current = null
-        _feedbackSent.value = false
+        _feedbackError.value = null
         _state.value = UiState.Idle
+    }
+
+    private fun messageFor(error: Throwable): String = when (error) {
+        is ApiException -> when (error.code) {
+            404 -> "这条记录已不存在，请刷新后再试"
+            413 -> "图片太大，请换一张较小的照片"
+            else -> "服务暂时不可用，请稍后重试"
+        }
+        is IOException, is java.net.SocketTimeoutException -> "网络好像不通，检查一下再试"
+        else -> "操作没有完成，请稍后重试"
     }
 }

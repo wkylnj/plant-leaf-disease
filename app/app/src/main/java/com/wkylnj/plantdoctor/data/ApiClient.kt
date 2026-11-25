@@ -1,10 +1,10 @@
 package com.wkylnj.plantdoctor.data
 
+import android.content.Context
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.DataOutputStream
 import java.io.File
-import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -19,10 +19,15 @@ import java.util.UUID
  *
  * 注意：所有网络调用都必须在 IO 线程执行（调用方用 Dispatchers.IO 包）。
  */
-class ApiClient(private val baseUrl: String = BuildConfigApi.base) {
+class ApiClient(context: Context, private val baseUrl: String = BuildConfigApi.base) {
+    private val deviceId: String = File(context.noBackupFilesDir, "device-id").let { file ->
+        file.takeIf { it.isFile }?.readText()?.takeIf { it.isNotBlank() }
+            ?: UUID.randomUUID().toString().replace("-", "").also { file.writeText(it) }
+    }
 
     /** 检查服务是否在线。 */
     fun health(): Health {
+        send("POST", "/users/$deviceId", null, null)
         val text = send("GET", "/health", null, null)
         val o = JSONObject(text)
         return Health(
@@ -30,6 +35,8 @@ class ApiClient(private val baseUrl: String = BuildConfigApi.base) {
             model = o.optString("model", "?"),
             version = o.optString("version", "?"),
             classes = o.optInt("classes", 0),
+            architecture = o.optString("architecture", o.optString("model", "?")),
+            imageSize = o.optInt("img_size", 224),
         )
     }
 
@@ -68,6 +75,67 @@ class ApiClient(private val baseUrl: String = BuildConfigApi.base) {
         send("POST", "/feedback", body.toByteArray(Charsets.UTF_8), null, isJson = true)
     }
 
+    fun history(limit: Int = 100, offset: Int = 0): HistoryPage {
+        val obj = JSONObject(send("GET", "/history?limit=$limit&offset=$offset", null, null))
+        val arr = obj.optJSONArray("items") ?: org.json.JSONArray()
+        val items = (0 until arr.length()).mapNotNull { index ->
+            arr.optJSONObject(index)?.let(::parseHistoryRecord)
+        }
+        return HistoryPage(items, obj.optInt("total", items.size))
+    }
+
+    fun historyRecord(requestId: String): HistoryRecord? {
+        val text = runCatching { send("GET", "/history/$requestId", null, null) }
+            .getOrElse { error -> if (error is ApiException && error.code == 404) return null else throw error }
+        return parseHistoryRecord(JSONObject(text))
+    }
+
+    fun clearHistory(): Int {
+        val obj = JSONObject(send("DELETE", "/history", null, null))
+        return obj.optInt("deleted", 0)
+    }
+
+    fun classes(): List<DiseaseClass> {
+        val arr = org.json.JSONArray(send("GET", "/classes", null, null))
+        return (0 until arr.length()).mapNotNull { index ->
+            arr.optJSONObject(index)?.let {
+                DiseaseClass(
+                    label = it.optString("label"),
+                    labelCn = it.optString("label_cn"),
+                    cropCn = it.optString("crop_cn", "其他"),
+                )
+            }
+        }
+    }
+
+    private fun parseHistoryRecord(obj: JSONObject): HistoryRecord {
+        val labels = obj.optJSONArray("top3")
+        val top3 = if (labels == null) emptyList() else (0 until labels.length()).mapNotNull { index ->
+            labels.optJSONObject(index)?.let {
+                LabelProb(
+                    label = it.optString("label"),
+                    labelCn = it.optString("label_cn", it.optString("label")),
+                    prob = it.optDouble("prob", 0.0),
+                )
+            }
+        }
+        val fb = obj.optJSONObject("feedback")?.let {
+            FeedbackRecord(
+                isCorrect = it.optBoolean("is_correct"),
+                trueLabel = it.optString("true_label").takeIf { value -> value.isNotEmpty() },
+                createdAt = it.optString("created_at").takeIf { value -> value.isNotEmpty() },
+            )
+        }
+        return HistoryRecord(
+            id = obj.optString("id"),
+            createdAt = obj.optString("created_at"),
+            top3 = top3,
+            model = obj.optString("model_name", "?"),
+            elapsedMs = obj.optDouble("elapsed_ms", 0.0),
+            feedback = fb,
+        )
+    }
+
     // ------------------------------------------------------------ 底层
     private fun send(
         method: String,
@@ -84,6 +152,7 @@ class ApiClient(private val baseUrl: String = BuildConfigApi.base) {
             if (body != null) doOutput = true
         }
         try {
+            conn.setRequestProperty("X-Device-ID", deviceId)
             if (body != null) {
                 if (boundary != null) {
                     conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
