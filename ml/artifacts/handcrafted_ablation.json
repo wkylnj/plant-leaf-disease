@@ -1,0 +1,81 @@
+{
+  "img_size": 224,
+  "limit_per_class": null,
+  "train_size": 39170,
+  "test_size": 10878,
+  "dims": {
+    "color": 102,
+    "glcm": 12,
+    "gabor": 48
+  },
+  "results": [
+    {
+      "accuracy": 0.7940797940797941,
+      "macro_f1": 0.7648194621107051,
+      "fit_secs": 3.64,
+      "n_params": 102,
+      "combo": [
+        "color"
+      ]
+    },
+    {
+      "accuracy": 0.3894098179812466,
+      "macro_f1": 0.3433494940553121,
+      "fit_secs": 3.54,
+      "n_params": 12,
+      "combo": [
+        "glcm"
+      ]
+    },
+    {
+      "accuracy": 0.5572715572715573,
+      "macro_f1": 0.49666449758267583,
+      "fit_secs": 8.48,
+      "n_params": 48,
+      "combo": [
+        "gabor"
+      ]
+    },
+    {
+      "accuracy": 0.8781025923883067,
+      "macro_f1": 0.8522153436337401,
+      "fit_secs": 2.92,
+      "n_params": 114,
+      "combo": [
+        "color",
+        "glcm"
+      ]
+    },
+    {
+      "accuracy": 0.9038426181283324,
+      "macro_f1": 0.8837492923488766,
+      "fit_secs": 5.72,
+      "n_params": 150,
+      "combo": [
+        "color",
+        "gabor"
+      ]
+    },
+    {
+      "accuracy": 0.6993932708218422,
+      "macro_f1": 0.6447445454168603,
+      "fit_secs": 7.79,
+      "n_params": 60,
+      "combo": [
+        "glcm",
+        "gabor"
+      ]
+    },
+    {
+      "accuracy": 0.921676778819636,
+      "macro_f1": 0.9043141918976985,
+      "fit_secs": 5.16,
+      "n_params": 162,
+      "combo": [
+        "color",
+        "glcm",
+        "gabor"
+      ]
+    }
+  ]
+}
