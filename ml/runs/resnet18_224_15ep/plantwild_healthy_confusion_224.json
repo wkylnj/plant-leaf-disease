@@ -1,0 +1,372 @@
+{
+  "model": "resnet18",
+  "img_size": 224,
+  "n_healthy": 2860,
+  "into_healthy": 1389,
+  "top_predicted": [
+    {
+      "class": "19_Pepper_bell_healthy",
+      "count": 699,
+      "ratio": 0.2444055944055944
+    },
+    {
+      "class": "26_Strawberry_Leaf_scorch",
+      "count": 361,
+      "ratio": 0.12622377622377623
+    },
+    {
+      "class": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+      "count": 259,
+      "ratio": 0.09055944055944055
+    },
+    {
+      "class": "30_Tomato_Late_blight",
+      "count": 229,
+      "ratio": 0.08006993006993007
+    },
+    {
+      "class": "11_Grape_Black_rot",
+      "count": 196,
+      "ratio": 0.06853146853146853
+    },
+    {
+      "class": "04_Blueberry_healthy",
+      "count": 138,
+      "ratio": 0.04825174825174825
+    },
+    {
+      "class": "03_Apple_healthy",
+      "count": 136,
+      "ratio": 0.04755244755244755
+    },
+    {
+      "class": "23_Raspberry_healthy",
+      "count": 131,
+      "ratio": 0.045804195804195806
+    },
+    {
+      "class": "15_Orange_Haunglongbing_Citrus_greening",
+      "count": 112,
+      "ratio": 0.039160839160839164
+    },
+    {
+      "class": "10_Corn_maize_healthy",
+      "count": 103,
+      "ratio": 0.03601398601398601
+    }
+  ],
+  "per_healthy_class": {
+    "03_Apple_healthy": {
+      "n": 444,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 99,
+          "ratio": 0.22297297297297297,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "15_Orange_Haunglongbing_Citrus_greening",
+          "count": 59,
+          "ratio": 0.13288288288288289,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "03_Apple_healthy",
+          "count": 58,
+          "ratio": 0.13063063063063063,
+          "same_crop": true,
+          "correct": true
+        }
+      ]
+    },
+    "06_Cherry_including_sour_healthy": {
+      "n": 286,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 56,
+          "ratio": 0.1958041958041958,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "03_Apple_healthy",
+          "count": 51,
+          "ratio": 0.17832167832167833,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+          "count": 25,
+          "ratio": 0.08741258741258741,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "04_Blueberry_healthy": {
+      "n": 281,
+      "top3": [
+        {
+          "class": "04_Blueberry_healthy",
+          "count": 58,
+          "ratio": 0.20640569395017794,
+          "same_crop": true,
+          "correct": true
+        },
+        {
+          "class": "11_Grape_Black_rot",
+          "count": 58,
+          "ratio": 0.20640569395017794,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 47,
+          "ratio": 0.16725978647686832,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "22_Potato_healthy": {
+      "n": 249,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 89,
+          "ratio": 0.357429718875502,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "30_Tomato_Late_blight",
+          "count": 37,
+          "ratio": 0.14859437751004015,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "26_Strawberry_Leaf_scorch",
+          "count": 23,
+          "ratio": 0.09236947791164658,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "24_Soybean_healthy": {
+      "n": 242,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 95,
+          "ratio": 0.3925619834710744,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "30_Tomato_Late_blight",
+          "count": 21,
+          "ratio": 0.08677685950413223,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+          "count": 20,
+          "ratio": 0.08264462809917356,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "19_Pepper_bell_healthy": {
+      "n": 240,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 123,
+          "ratio": 0.5125,
+          "same_crop": true,
+          "correct": true
+        },
+        {
+          "class": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+          "count": 39,
+          "ratio": 0.1625,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "30_Tomato_Late_blight",
+          "count": 21,
+          "ratio": 0.0875,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "37_Tomato_healthy": {
+      "n": 226,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 56,
+          "ratio": 0.24778761061946902,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+          "count": 49,
+          "ratio": 0.2168141592920354,
+          "same_crop": true,
+          "correct": false
+        },
+        {
+          "class": "30_Tomato_Late_blight",
+          "count": 41,
+          "ratio": 0.18141592920353983,
+          "same_crop": true,
+          "correct": false
+        }
+      ]
+    },
+    "14_Grape_healthy": {
+      "n": 201,
+      "top3": [
+        {
+          "class": "14_Grape_healthy",
+          "count": 50,
+          "ratio": 0.24875621890547264,
+          "same_crop": true,
+          "correct": true
+        },
+        {
+          "class": "11_Grape_Black_rot",
+          "count": 30,
+          "ratio": 0.14925373134328357,
+          "same_crop": true,
+          "correct": false
+        },
+        {
+          "class": "26_Strawberry_Leaf_scorch",
+          "count": 23,
+          "ratio": 0.11442786069651742,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "27_Strawberry_healthy": {
+      "n": 199,
+      "top3": [
+        {
+          "class": "26_Strawberry_Leaf_scorch",
+          "count": 100,
+          "ratio": 0.5025125628140703,
+          "same_crop": true,
+          "correct": false
+        },
+        {
+          "class": "27_Strawberry_healthy",
+          "count": 24,
+          "ratio": 0.12060301507537688,
+          "same_crop": true,
+          "correct": true
+        },
+        {
+          "class": "23_Raspberry_healthy",
+          "count": 15,
+          "ratio": 0.07537688442211055,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "23_Raspberry_healthy": {
+      "n": 180,
+      "top3": [
+        {
+          "class": "23_Raspberry_healthy",
+          "count": 70,
+          "ratio": 0.3888888888888889,
+          "same_crop": true,
+          "correct": true
+        },
+        {
+          "class": "26_Strawberry_Leaf_scorch",
+          "count": 51,
+          "ratio": 0.2833333333333333,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+          "count": 15,
+          "ratio": 0.08333333333333333,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "17_Peach_healthy": {
+      "n": 157,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 40,
+          "ratio": 0.25477707006369427,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "35_Tomato_Tomato_Yellow_Leaf_Curl_Virus",
+          "count": 26,
+          "ratio": 0.16560509554140126,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "26_Strawberry_Leaf_scorch",
+          "count": 25,
+          "ratio": 0.1592356687898089,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    },
+    "10_Corn_maize_healthy": {
+      "n": 155,
+      "top3": [
+        {
+          "class": "19_Pepper_bell_healthy",
+          "count": 62,
+          "ratio": 0.4,
+          "same_crop": false,
+          "correct": false
+        },
+        {
+          "class": "10_Corn_maize_healthy",
+          "count": 60,
+          "ratio": 0.3870967741935484,
+          "same_crop": true,
+          "correct": true
+        },
+        {
+          "class": "30_Tomato_Late_blight",
+          "count": 9,
+          "ratio": 0.05806451612903226,
+          "same_crop": false,
+          "correct": false
+        }
+      ]
+    }
+  }
+}
