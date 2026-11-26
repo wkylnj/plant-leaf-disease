@@ -1,0 +1,99 @@
+{
+  "experiment": "supervised_domain_adaptation",
+  "setting_note": "有监督域适应：使用 PlantDoc 标签微调。与 eval_crossdomain.py 的零样本跨域泛化（不碰目标域标签）是不同设定，数字不可互换。",
+  "model": "resnet18",
+  "ckpt": "D:\\Desktop\\神经网络最终项目\\ml\\runs\\resnet18_224_15ep\\best.pt",
+  "ckpt_epoch": 11,
+  "ckpt_pv_val_acc": 0.9954022988505747,
+  "dataset": {
+    "name": "PlantDoc",
+    "n_mapped": 108,
+    "n_unmapped_skipped": 2,
+    "n_plantdoc_classes": 27,
+    "source_counts": {
+      "train": 108
+    },
+    "n_bad_images": 0,
+    "split": "train+test 合并后按类别重新分层 5 折（不保留官方划分）"
+  },
+  "config": {
+    "model": "resnet18",
+    "folds": 5,
+    "epochs": 1,
+    "img_size": 224,
+    "batch_size": 8,
+    "backbone_lr": 0.0001,
+    "head_lr": 0.001,
+    "weight_decay": 0.0001,
+    "label_smoothing": 0.1,
+    "optimizer": "AdamW",
+    "scheduler": "CosineAnnealingLR(per-epoch)",
+    "seed": 42,
+    "strong_aug": false,
+    "freeze_bn": false,
+    "limit_per_class": 4,
+    "limit_batches": 2,
+    "head_classes": 38
+  },
+  "folds": null,
+  "zeroshot": {
+    "per_fold": [
+      {
+        "fold": 0,
+        "n": 21,
+        "top1_acc": 0.3333,
+        "top3_acc": 0.5238,
+        "crop_acc": 0.5238,
+        "correct": 7,
+        "crop_correct": 11
+      }
+    ],
+    "top1_mean": 0.3333,
+    "top1_std": 0.0,
+    "crop_mean": 0.5238,
+    "crop_std": 0.0,
+    "overall_top1_all_folds": 0.3333
+  },
+  "finetuned": {
+    "per_fold": [
+      {
+        "fold": 0,
+        "n_train": 87,
+        "n_val": 21,
+        "epochs": 1,
+        "train_loss_final": 3.4283,
+        "top1_acc": 0.3333,
+        "top3_acc": 0.4286,
+        "crop_acc": 0.5238,
+        "mean_conf": 0.5337,
+        "correct": 7,
+        "crop_correct": 11,
+        "train_s": 14.5,
+        "history": [
+          {
+            "epoch": 1,
+            "train_loss": 3.4283,
+            "val_top1": 0.3333,
+            "val_crop": 0.5238,
+            "lr_backbone": 1e-06,
+            "lr_head": 1e-06
+          }
+        ]
+      }
+    ],
+    "top1_mean": 0.3333,
+    "top1_std": 0.0,
+    "crop_mean": 0.5238,
+    "crop_std": 0.0
+  },
+  "paired_delta": {
+    "top1_mean": 0.0,
+    "top1_std": 0.0,
+    "crop_mean": 0.0,
+    "crop_std": 0.0,
+    "folds_better": 0,
+    "n_folds": 1
+  },
+  "epochs_ran": 1,
+  "folds_ran": 1
+}
