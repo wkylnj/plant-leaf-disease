@@ -5,13 +5,12 @@
   "language": "python",
   "kernel_type": "script",
   "is_private": true,
-  "enable_gpu": true,
+  "enable_gpu": false,
   "enable_internet": true,
   "dataset_sources": [],
   "competition_sources": [],
   "kernel_sources": [
     "wangkaiyu66/plant-leaf-fbr"
   ],
-  "model_sources": [],
-  "machine_shape": "NvidiaTeslaT4"
+  "model_sources": []
 }

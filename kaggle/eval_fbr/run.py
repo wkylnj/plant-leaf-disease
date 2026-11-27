@@ -18,6 +18,8 @@ Kaggle 支持把另一个 kernel 的输出挂载为**输入**（`kernel_sources`
 import glob
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -54,22 +56,94 @@ def fetch_scripts():
     log(f"脚本就绪：{len(SCRIPTS)} 个")
 
 
+def dump_input_tree(max_entries=120):
+    """打印 /kaggle/input 的目录结构，用来确认 kernel_sources 是否挂上。"""
+    log("--- /kaggle/input 结构 ---")
+    count = 0
+    for root, dirs, files in os.walk("/kaggle/input"):
+        depth = root.count(os.sep) - "/kaggle/input".count(os.sep)
+        if depth > 4:
+            dirs[:] = []
+            continue
+        log(f"  {'  ' * depth}{root}/  ({len(files)} files)")
+        for f in files[:8]:
+            p = os.path.join(root, f)
+            try:
+                sz = os.path.getsize(p) / 1e6
+            except OSError:
+                sz = -1
+            log(f"  {'  ' * depth}  - {f}  {sz:.1f} MB")
+            count += 1
+            if count >= max_entries:
+                log("  ...（截断）")
+                return
+    if count == 0:
+        log("  （空）")
+
+
+def extract_from_output_zip():
+    """挂载进来的是整个 `_output_.zip`（5.3 GB），在里面找 FBR 的权重。
+
+    Kaggle 的 kernel_sources 挂的是**输出原样**——FBR 那次输出目录里
+    混着整个合成数据集，被打成一个 5.3 GB 的 zip。好消息是 zip 就在
+    本地磁盘上，`zipfile` 只需读末尾的中央目录，再 seek 到目标条目，
+    不用解压 6600 张图。
+    """
+    import zipfile
+
+    zips = sorted(glob.glob("/kaggle/input/**/_output_.zip", recursive=True))
+    if not zips:
+        log("没有找到 _output_.zip")
+        return None
+
+    zpath = zips[0]
+    log(f"打开 {zpath}  {os.path.getsize(zpath) / 1e6:.1f} MB")
+    want = re.compile(r"runs/.*fbr.*/(best\.pt|classes\.json|config\.json|summary\.json|history\.csv)$")
+
+    dest_root = os.path.join(WORK, "runs")
+    extracted = []
+    with zipfile.ZipFile(zpath) as zf:
+        names = zf.namelist()
+        log(f"zip 内 {len(names)} 个条目")
+        hits = [n for n in names if want.search(n)]
+        log(f"命中 {len(hits)} 个")
+        for name in hits:
+            info = zf.getinfo(name)
+            # 只保留 runs/ 之后的部分，去掉 data/ 等前缀
+            rel = name[name.index("runs/"):]
+            dest = os.path.join(dest_root, rel)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            log(f"  解压 {name}  {info.file_size / 1e6:.2f} MB")
+            with zf.open(info) as src, open(dest, "wb") as dst:
+                while True:
+                    chunk = src.read(1 << 20)
+                    if not chunk:
+                        break
+                    dst.write(chunk)
+            extracted.append(dest)
+
+    for p in extracted:
+        if p.endswith("best.pt"):
+            return p
+    return None
+
+
 def find_ckpt():
     """在挂载的 kernel 输出里找 FBR 的 best.pt。"""
-    # Kaggle 把 kernel 输出挂在 /kaggle/input/<kernel-slug>/ 下，
-    # 但实际路径可能带 runs 前缀，所以用 glob 递归找。
     patterns = [
         "/kaggle/input/**/runs/*fbr*/best.pt",
+        "/kaggle/input/**/*fbr*/best.pt",
         "/kaggle/input/**/best.pt",
     ]
     for pat in patterns:
         hits = sorted(glob.glob(pat, recursive=True))
         if hits:
-            log(f"找到 {len(hits)} 个 best.pt")
+            log(f"命中模式 {pat} → {len(hits)} 个")
             for h in hits:
                 log(f"  {h}  {os.path.getsize(h) / 1e6:.1f} MB")
             return hits[0]
-    return None
+    # 没解压的目录，说明挂的是输出 zip
+    return extract_from_output_zip()
 
 
 def download_plantdoc():
@@ -110,10 +184,8 @@ def main():
 
     ckpt = find_ckpt()
     if ckpt is None:
-        log("!!! 找不到 best.pt，检查 kernel_sources 是否挂载成功")
-        for base in ["/kaggle/input"]:
-            for d in sorted(glob.glob(os.path.join(base, "*")))[:20]:
-                log(f"  input: {d}")
+        log("!!! 找不到 best.pt")
+        dump_input_tree()
         return 2
 
     pd_root = download_plantdoc()

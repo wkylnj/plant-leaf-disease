@@ -1,0 +1,20 @@
+{
+  "model": "resnet18",
+  "params_m": 11.196,
+  "img_size": 224,
+  "seed": 42,
+  "epochs": 15,
+  "pretrained": true,
+  "strong_aug": true,
+  "da_aug": false,
+  "local_crop": false,
+  "local_scale_min": 0.15,
+  "local_scale_max": 0.5,
+  "best_val_acc": 0.974346,
+  "test_loss": 0.892998,
+  "test_acc": 0.943924,
+  "test_macro_f1": 0.923564,
+  "n_train": 35255,
+  "n_val": 3898,
+  "n_test": 10878
+}

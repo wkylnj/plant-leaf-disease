@@ -28,9 +28,30 @@ class RangeFile(io.RawIOBase):
         self.block = block
         self.buf = b""
         self.buf_start = 0
-        req = urllib.request.Request(url, method="HEAD")
+        self.size = self._probe_size()
+
+    def _probe_size(self) -> int:
+        """取远程文件大小。
+
+        先用 HEAD；某些签名 URL（如 Kaggle 的 kernel 输出）不响应 HEAD，
+        会直接 404，此时退回 `Range: bytes=0-0` 的 GET——响应头里带
+        `Content-Range: bytes 0-0/<total>`，总长度就在里面。
+        """
+        try:
+            req = urllib.request.Request(self.url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return int(r.headers["Content-Length"])
+        except urllib.error.HTTPError as e:
+            if e.code not in (403, 404, 405, 501):
+                raise
+        req = urllib.request.Request(self.url, headers={"Range": "bytes=0-0"})
         with urllib.request.urlopen(req, timeout=30) as r:
-            self.size = int(r.headers["Content-Length"])
+            cr = r.headers.get("Content-Range", "")
+            if "/" in cr:
+                return int(cr.rsplit("/", 1)[1])
+            if r.headers.get("Content-Length"):
+                return int(r.headers["Content-Length"])
+        raise RuntimeError("无法取得远程文件大小")
 
     def seekable(self) -> bool:
         return True
