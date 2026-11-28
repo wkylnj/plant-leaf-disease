@@ -9,7 +9,7 @@
   "enable_internet": true,
   "dataset_sources": ["wangkaiyu66/plantdoc-pv-ckpt"],
   "competition_sources": [],
-  "kernel_sources": [],
+  "kernel_sources": ["wangkaiyu66/plant-leaf-swin-t"],
   "model_sources": [],
   "machine_shape": "NvidiaTeslaT4"
 }

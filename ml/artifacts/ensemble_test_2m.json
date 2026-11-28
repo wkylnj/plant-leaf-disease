@@ -1,0 +1,45 @@
+{
+  "split": "test",
+  "members": [
+    {
+      "member": "resnet18_224_15ep@320",
+      "model": "resnet18",
+      "img_size": 320,
+      "params_m": 11.196006,
+      "cross": {
+        "n": 252,
+        "top1_acc": 0.3651,
+        "top3_acc": 0.5833,
+        "crop_acc": 0.619,
+        "mean_confidence": 0.3317
+      },
+      "elapsed_s": 12.3
+    },
+    {
+      "member": "mobilenet_v3_large_224_15ep@320",
+      "model": "mobilenet_v3_large",
+      "img_size": 320,
+      "params_m": 4.25071,
+      "cross": {
+        "n": 252,
+        "top1_acc": 0.3333,
+        "top3_acc": 0.5635,
+        "crop_acc": 0.627,
+        "mean_confidence": 0.477
+      },
+      "elapsed_s": 10.7
+    }
+  ],
+  "ensemble_cross": {
+    "n": 252,
+    "top1_acc": 0.3611,
+    "top3_acc": 0.5952,
+    "crop_acc": 0.6429,
+    "mean_confidence": 0.3791
+  },
+  "ensemble_same": null,
+  "config": {
+    "flip": false,
+    "batch_size": 32
+  }
+}

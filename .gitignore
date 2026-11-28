@@ -87,3 +87,4 @@ ml/data/raw/plantdoc_bg/
 ml/data/processed/pv_fbr/
 ml/data/processed/pv_fbr_smoke/
 ml/artifacts/calibration_cache/
+_swin_upload/

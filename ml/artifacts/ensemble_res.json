@@ -1,0 +1,31 @@
+{
+  "split": "test",
+  "members": [
+    {
+      "member": "resnet18_224_15ep@224",
+      "model": "resnet18",
+      "img_size": 224,
+      "params_m": 11.196006,
+      "cross": {
+        "n": 252,
+        "top1_acc": 0.3373,
+        "top3_acc": 0.5833,
+        "crop_acc": 0.6071,
+        "mean_confidence": 0.4437
+      },
+      "elapsed_s": 9.1
+    }
+  ],
+  "ensemble_cross": {
+    "n": 252,
+    "top1_acc": 0.3373,
+    "top3_acc": 0.5833,
+    "crop_acc": 0.6071,
+    "mean_confidence": 0.4437
+  },
+  "ensemble_same": null,
+  "config": {
+    "flip": false,
+    "batch_size": 32
+  }
+}

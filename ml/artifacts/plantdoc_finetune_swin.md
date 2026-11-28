@@ -1,210 +1,165 @@
-# PlantDoc 微调迁移到 Swin-T：脚本改动、冒烟结果与 Kaggle 配置
+# E-19 Swin-T PlantDoc 有监督微调：跨域 34.93% → 77.06%
 
-本文记录把已验证的 `ml/src/finetune_plantdoc.py`（ResNet18 五折交叉验证微调）
-迁移到 Swin-T 的过程。**结论先行：脚本一行都不用改**，Swin-T 本来就已支持。
+## 一句话结论
 
----
+同一套五折交叉验证、同一份 PlantDoc、同一套 38 类分类头，把 ResNet18 换成 Swin-T 后，
+跨域 top-1 从 **69.73% 提到 77.06%（+7.33pp）**，作物级从 83.50% 提到 **89.77%（+6.27pp）**；
+相对各自零样本的提升分别是 +42.12pp 与 +36.55pp，**5/5 折全部变好**。
+这是本项目全部实验里最高的跨域成绩，也是唯一一个"换模型就能提分"的正面结果。
 
-## 1. 脚本是否需要改：不需要
+## 两个设定必须分开说
 
-原以为脚本里可能硬编码了 `resnet18`，读完全文（670 行）确认它已经是模型无关的：
+与 `plantdoc_finetune.md`（ResNet18 版）完全一致的口径，不能混用：
+
+| 设定 | 是否用 PlantDoc 标签 | ResNet18 | Swin-T |
+| --- | --- | --- | --- |
+| 零样本跨域泛化（`eval_crossdomain.py`） | 不用 | 28.18% | **34.93%** |
+| 提分辨率（`eval_preprocess_ablation.py`） | 不用 | 30.38% @320 | 37.09% @352 |
+| 多分辨率平均（`eval_ensemble.py`） | 不用 | — | **37.50%** |
+| 有监督域适应（本文 / `finetune_plantdoc.py`） | **用** | 69.73% | **77.06%** |
+
+前三种是"闭卷考试"，第四种是"开卷补课"。**77.06% 不能当作零样本跨域准确率对外说。**
+
+## 实验设置
+
+| 项目 | 配置 |
+| --- | --- |
+| 源域 | PlantVillage 38 类（`ml/data/processed/plantvillage`） |
+| 源域权重 | `ml/runs/swin_t_224_15ep/best.pt`（epoch 8，PV val_acc 0.9961） |
+| 目标域 | PlantDoc 2920 张 / 27 类（train 2668 + test 252 合并后重新分层） |
+| 折划分 | 5 折按类别分层，589/581/581/582/587，每折类别覆盖 27/27 |
+| 分类头 | **保持 38 类**，与零样本评估同头，保证可比 |
+| 超参 | 4 轮、bs 64、224px、backbone lr 1e-4、head lr 1e-3、AdamW、cosine、ls 0.1、seed 42 |
+| 增强 | 仅裁剪 + 翻转（`strong_aug=False`），与 ResNet18 那轮一致 |
+| 模型选择 | **不做早停、不按验证折选轮次**，固定 4 轮取最后一轮 |
+
+### 脚本一行都没改
+
+原以为 `ml/src/finetune_plantdoc.py` 硬编码了 resnet18，读完 670 行确认它已是模型无关的：
 
 | 关注点 | 实现位置 | 结论 |
 | --- | --- | --- |
-| 模型名从哪来 | `finetune_plantdoc.py:419` | `args.model` → `ck["args"]["model"]` → 目录名兜底，三级回落 |
-| 分类头如何切分学习率 | `finetune_plantdoc.py:90-100` `HEAD_PREFIX` | 已登记 `"swin_t": "head"`，与 `models.py` 里 `model.head = nn.Linear(...)` 一致 |
+| 模型名从哪来 | `finetune_plantdoc.py:419` | `args.model` → `ck["args"]["model"]` → 目录名，三级兜底 |
+| 分类头学习率分组 | `finetune_plantdoc.py:90-100` `HEAD_PREFIX` | 已登记 `"swin_t": "head"` |
 | 分类头维度 | `finetune_plantdoc.py:424-426` | 从 `ck["classes"]` 取 38 类，不写死 |
-| 模型构建 | `finetune_plantdoc.py:266` | `build_model(model_name, num_classes, pretrained=False)` 后再 `load_state_dict` |
-| 数据划分 | `make_stratified_folds` | 与模型无关 |
-| 结果 json | `main()` 末尾 | 与模型无关 |
+| 模型构建 | `finetune_plantdoc.py:266` | `build_model(...)` 后 `load_state_dict` |
 
-关键证据是 checkpoint 自带的元数据：
+checkpoint 自带元数据也对得上：`args.model='swin_t'`、`epoch=8`、`n_classes=38`、`img_size=224`。
+**本次没有修改 `finetune_plantdoc.py`、`models.py`、`data.py`、`eval_crossdomain.py`、`train_colab.py`。**
 
-```
-args.model = 'swin_t'        # 脚本会自动读成 swin_t
-epoch = 8, val_acc = 0.9961
-n_classes = 38               # 与 PlantVillage 分类头一致
-img_size = 224
-```
+## 主结果
 
-所以 `--run-dir runs/swin_t_224_15ep` 直接就能跑，`HEAD_PREFIX["swin_t"] = "head"`
-也不是新加的——原脚本作者已经预埋了 Swin-T。
-
-**本次没有修改 `finetune_plantdoc.py`，也没有动 `models.py` / `data.py` /
-`eval_crossdomain.py` / `train_colab.py`。**
-
----
-
-## 2. 冒烟测试（CPU）
-
-命令：
-
-```powershell
-$env:PYTHONUTF8=1
-cd "D:\Desktop\神经网络最终项目\ml"
-python src/finetune_plantdoc.py --run-dir runs/swin_t_224_15ep `
-    --folds 5 --folds-to-run 1 --epochs 1 `
-    --limit-per-class 4 --limit-batches 20 `
-    --batch-size 8 --num-workers 0 `
-    --out runs/swin_t_224_15ep/plantdoc_ft_cv_smoke.json
-```
-
-实际输出（退出码 0）：
-
-```
-checkpoint : D:\Desktop\神经网络最终项目\ml\runs\swin_t_224_15ep\best.pt
-模型       : swin_t（epoch 8，PV val_acc 0.9960919540229886）
-设备       : cpu   torch 2.6.0+cpu
-可用样本   : 108 张 / 27 个 PlantDoc 类（映射到 PV 的 27 类）
-未映射剔除 : 2 张（['Tomato_two_spotted_spider_mites_leaf']）
-配置       : epochs=1 bs=8 backbone_lr=0.0001 head_lr=0.001 ls=0.1 strong_aug=False
-
-折划分（按类别分层）
-折       训练    验证     训练类数     验证类数     来源(train/test)
-0       87    21       27       21              87/0
-1       83    25       27       25              83/0
-2       86    22       27       22              86/0
-3       91    17       27       17              91/0
-4       85    23       27       23              85/0
-
-[1/2] 零样本 baseline（权重原样加载，不微调）
-  折 0  零样本 top-1=0.3810  作物级=0.4762  (n=21)
-
-[2/2] 微调 1 折（每折重新从 PlantVillage 权重初始化）
-  ── 折 0/0：训练 87，验证 21
-    轮 1/1  loss=3.0831  val_top1=0.1905  val_crop=0.3810
-    折 0 结果  top-1=0.1905  作物级=0.3810  top-3=0.4762  用时 20.2s
-```
-
-冒烟结论（只验证管线，**不构成任何准确率结论**）：
-
-- ✅ Swin-T 权重加载成功，没有 shape 不匹配（38 类头对得上）
-- ✅ 前向/反向/AdamW/余弦退火/AMP 分支在 CPU 上都走通
-- ✅ 分类头切分生效：`lr_backbone=1e-6` 与 `lr_head=1e-6` 同步退火，说明两组参数
-  都被 optimizer 接管（1 轮 cosine 退到 `eta_min = 1e-4 * 0.01`）
-- ✅ 结果 json 正常落盘，`RESULT_JSON_BEGIN/END` 块可解析
-
-微调后 top-1 反而从 0.3810 掉到 0.1905，**这是预期的**：只跑 1 轮、每类 4 张
-（训练集 87 张）、20 个 batch，等于用极小样本把预训练特征打乱一轮。冒烟只看
-"跑不跑得通"，不看数字。
-
-耗时 20.2s / 20 batch（bs=8，160 张图当量）。同规模下 ResNet18 约 7s，比例
-接近预期的 3 倍。
-
----
-
-## 3. Kaggle kernel 配置
-
-路径：`kaggle/swin_finetune/`（`run.py` + `kernel-metadata.json`）
-
-```json
-{
-  "id": "wangkaiyu66/plant-leaf-swin-finetune",
-  "enable_gpu": true,
-  "enable_internet": true,
-  "dataset_sources": ["wangkaiyu66/plantdoc-pv-ckpt"],
-  "machine_shape": "NvidiaTeslaT4"
-}
-```
-
-结构与 `kaggle/plantdoc_ft/` 一致：下载 PlantDoc → 从 raw.githubusercontent 拉源码
-（保持单一真源）→ 找 Swin-T 的 best.pt → 跑 5 折 + 同折零样本 baseline → 结果打到
-stdout 的 `ALL_RESULTS_JSON_BEGIN/END`。
-
-### 权重从哪来（重点）
-
-`wangkaiyu66/plantdoc-pv-ckpt` 里**只有 resnet18 和 mobilenet_v3_large 的 best.pt，
-没有 Swin-T**。`run.py` 的 `find_swin_ckpt()` 按以下顺序找：
-
-1. **挂载的 Kaggle Dataset**（推荐）。遍历 `/kaggle/input/**/*.pt`，先按目录名里是否含
-   `swin` 排序，再**读取每个候选的 `args.model` 确认等于 `swin_t`** 才采用。
-   因为三份权重文件名都叫 `best.pt`，不看内容无法区分。
-   做法：把 `ml/runs/swin_t_224_15ep/best.pt`（约 105MB）上传成**独立的**私有
-   dataset（建议 `wangkaiyu66/plantdoc-swin-ckpt`），在本 kernel 的 Data 里挂载。
-   **不要塞进 `plantdoc-pv-ckpt`**——那个数据集被 `plantdoc_ft` kernel 复用，
-   改内容会让旧 kernel 的输入版本漂移。
-2. **`SWIN_CKPT_URL` 环境变量**（GitHub Release 直链）。105MB 走 Release 附件可行，
-   但不进仓库本体。下载后同样校验 `args.model` 与文件大小（>50MB）。
-3. 都没有 → 打印明确的两条操作提示，`sys.exit(2)`，不静默跑错模型。
-
-已用伪造 checkpoint 验证过这两条路径：三份 `best.pt` 混挂时能选中 swin 那份；
-只有 resnet18 时正确返回 None 并输出提示。
-
-超参与 ResNet18 那轮完全一致（`epochs=4, bs=64, backbone_lr=1e-4, head_lr=1e-3,
-ls=0.1, 5 折`），这样两个 kernel 的数字可以直接并列。Swin-T 显存约 3 倍，T4 16GB 上
-bs=64 @224 通常够用；若 OOM 把 `run.py` 里的 `BATCH_SIZE` 改成 32 即可（4 轮内不值得
-再调 lr）。
-
-**没有执行 `kaggle kernels push`**，按要求留给用户手动推送。
-
----
-
-## 4. 为什么预期 Swin-T 微调后能超过 ResNet18 的 69.73%
-
-先摆事实（同一套 5 折、同一套 38 类分类头、同一份 PlantDoc）：
+### 与 ResNet18 对比（5 折均值 ± 标准差）
 
 | 指标 | ResNet18 | Swin-T | 差 |
 | --- | --- | --- | --- |
-| 零样本 top-1（@224） | 28.18% | **34.93%** | +6.75pp |
-| 零样本 top-3 | 49.01% | 57.05% | +8.04pp |
+| 零样本 top-1 | 28.18% | 34.93% ± 1.61% | +6.75pp |
 | 零样本作物级 | 51.13% | 53.22% | +2.09pp |
-| 微调后 top-1（5 折均值） | **69.73% ± 2.37%** | 待跑 | — |
-| 微调后作物级 | 83.50% | 待跑 | — |
+| **微调后 top-1** | **69.73% ± 2.37%** | **77.06% ± 2.36%** | **+7.33pp** |
+| **微调后作物级** | **83.50%** | **89.77% ± 2.01%** | **+6.27pp** |
+| 微调后 top-3 | 90.57% | **95.30%**（五折 93.87~96.04） | +4.73pp |
+| 相对零样本增益（top-1） | +41.55pp | +42.12pp ± 3.40pp | 持平 |
+| 相对零样本增益（作物级） | +32.37pp | +36.55pp ± 3.88pp | +4.18pp |
+| 变好的折数 | 5/5 | **5/5** | — |
 
-（Swin-T 另有 @352 = 37.09%、多分辨率平均 37.50% 的结果，见 `crossdomain.json` 与
-相应 artifacts；本 kernel 统一走 @224，与 ResNet18 对齐。）
+**两处值得注意**：
+1. **增益幅度几乎相同（+41.55 vs +42.12pp）**，说明微调能榨出的提升已经被这批数据的上限卡住，
+   不是"模型不够强"。真正拉开差距的是起点（34.93 vs 28.18）和终点（77.06 vs 69.73）。
+2. **作物级增益 Swin-T 更大（+36.55 vs +32.37pp）**，与零样本时它作物级只领先 2.09pp 形成对比——
+   微调后作物级领先 6.27pp。说明 Swin-T 的细粒度优势在适配目标域后被完整释放了。
 
-### 预估
+### 逐折明细
 
-- **top-1：71% ~ 74%**（中心值约 72.5%），即比 69.73% 高 1.5~4pp
-- **作物级：84.5% ~ 86.5%**
-- **5 折全部提升**（相对各自零样本）的概率很高；但**"Swin-T 每折都高于 ResNet18
-  同折"不一定成立**，折间标准差 2.37pp 已经和预期增益同量级
+| 折 | 验证数 | 零样本 top-1 | 微调 top-1 | 零样本作物级 | 微调作物级 | 微调 top-3 | 平均置信度 | 用时 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 589 | 34.13% | **78.10%** | 51.44% | 89.30% | 95.08% | 0.7356 | 196.1s |
+| 1 | 581 | 32.53% | **78.14%** | 51.46% | 91.74% | 96.04% | 0.7472 | 194.5s |
+| 2 | 581 | 35.63% | **79.69%** | 51.98% | 91.39% | 95.35% | 0.7501 | 192.4s |
+| 3 | 582 | 36.60% | **75.60%** | 55.50% | 89.69% | 94.67% | 0.7378 | 193.0s |
+| 4 | 587 | 35.78% | **73.76%** | 55.71% | 86.71% | 93.87% | 0.7271 | 192.4s |
+| 均值 | — | **34.93%** ± 1.61 | **77.06%** ± 2.36 | **53.22%** ± 2.19 | **89.77%** ± 2.01 | 95.30% | 0.7396 | 193.7s |
 
-### 理由
+折间标准差 2.36pp，与 ResNet18 的 2.37pp 几乎一样——**微调后两模型的稳定性没有差别**，
+差别全在水平高度上。
 
-**支持超过的理由（主要）**
+### 训练曲线（每折 4 轮，以折 0 为例）
 
-1. **起点高 6.75pp**。有监督微调是在预训练特征上做局部调整，不是从零学；
-   起点差距在 4 轮、lr 1e-4 的小步微调下不会被抹平。ResNet18 从 28.18 提到 69.73
-   是 +41.55pp，若 Swin-T 的"可提升空间"结构相似，34.93 + 相近增幅就落在 73% 附近。
-2. **零样本 top-3 优势更大（+8.04pp）**。top-3 比 top-1 更能反映"特征空间里正确类
-   排得够不够前"。Swin-T 的 top-3 领先幅度大于 top-1，说明它的错误更多是
-   "排在 2、3 位"而非"完全跑偏"——这类错误正是微调最容易修正的。
-3. **层次化窗口注意力对叶片病斑这类局部纹理更友好**。PlantDoc 的域偏移主要是
-   拍摄条件（背景杂乱、光照、分辨率、病斑尺度不一），Swin 的窗口划分 + 移位窗口
-   在多个尺度上建模，理论上比 ResNet18 的固定 7×7 感受野更能适应尺度变化。
+| 轮 | train_loss | val_top1 | val_crop | lr_backbone | lr_head |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 1.9481 | **69.95%** | 83.70% | 8.55e-05 | 8.54e-04 |
+| 2 | 1.3618 | 76.23% | 89.13% | 5.05e-05 | 5.01e-04 |
+| 3 | 1.1670 | 75.89% | 89.47% | 1.55e-05 | 1.47e-04 |
+| 4 | 1.0934 | 78.10% | 89.30% | 1e-06 | 1e-06 |
 
-**压制增益的理由（为什么不敢给更高）**
+**第 1 轮就把零样本 34.13% 推到 69.95%**——提升的绝大部分发生在第一轮，
+后面三轮只再涨 8pp。这个形状与 ResNet18 那轮完全一致（第 1 轮就到 59~65%），
+再次印证"提升主要来自让模型见到目标域成像风格，而不是学到新的病害知识"。
 
-1. **微调会压缩模型间的差距，不是放大**。域适应文献里常见现象：强预训练模型
-   零样本领先，微调后两者收敛到相近水平，因为目标域只有 2920 张、27 类，
-   容量更大的模型更容易过拟合这 2336 张训练图（每折）。Swin-T 有 28M 参数，
-   ResNet18 只有 11M，数据量不变时正则化压力更大。
-2. **作物级只领先 2.09pp**，远小于 top-1 的 6.75pp。作物级是更粗的粒度，
-   说明 Swin-T 的优势集中在"细分到具体病害"这一层；而微调阶段两类模型都会
-   在细粒度上学到目标域分布，这部分优势可能被摊薄。
-3. **只跑 4 轮、不做早停、不按验证折选轮**（脚本的刻意设计，避免验证集变成
-   模型选择集）。轮数少对大模型更不利——Swin-T 通常需要更长 warmup 才能充分适配。
-4. 本地 ResNet18 五折标准差 2.37pp，说明折间波动本身就有 2pp 量级。若真实增益
-   只有 1~2pp，5 折配对比较未必能给出统计上干净的结论。
+折 4 是唯一 val_top1 在第 3 轮出现回落的折（75.30% → 73.76%），但它仍是 5 折里
+零样本最高的（35.78%），微调后反而最低（73.76%）。**没有早停**是脚本的刻意设计
+（避免验证折变成模型选择集），代价就是这个。
 
-**如果结果低于 69.73% 怎么办**：最可能的原因是 4 轮不够或 bs=64 下 Swin-T 的有效
-学习率偏小。届时优先试 `--epochs 6`（不改其他超参），而不是调 lr——保持与
-ResNet18 那轮的可比性更重要。
+## 结论
 
----
+1. **Swin-T 微调后 77.06% 是全部实验的最高跨域成绩**，比 ResNet18 的 69.73% 高 7.33pp，
+   5/5 折全部更好，配对差 +42.12 ± 3.40pp 稳定。
+2. **子代理的事前预估（71~74%）偏保守，实际 77.06% 超过预估上限 3.06pp**。
+   它给的压制理由里"微调压缩模型差距"这一条没有成立——实际是**差距被放大**了
+   （零样本 +6.75pp → 微调后 +7.33pp，作物级 +2.09pp → +6.27pp）。
+   复盘：它按"域适应文献里强模型优势被摊薄"的普遍规律推断，但我们的微调只有 4 轮、
+   lr 1e-4 的小步调整，模型容量差异没有被抹平，反而因为 Swin-T 的层次化窗口注意力
+   更适合处理"病斑尺度不一 + 背景杂乱"这类域偏移而被保留下来。
+3. **与零样本结论形成完整闭环**：Swin-T 的优势在两个设定下都存在，且方向一致。
+   这是选 Swin-T 作为主模型的第三个独立证据（前两个：PlantDoc 零样本 +6.75pp、
+   PlantWild 零样本 +5.69pp）。
+4. **代价必须说清**：Swin-T 27.55M 参数（ResNet18 的 2.46 倍）、CPU 单张延迟 53.8ms
+   （3.21 倍）、ONNX 体积约为 2.5 倍（ResNet18 44.77MB，Swin 未导出但按参数量推算）。
+   微调本身也要 5×194s ≈ 16 分钟 GPU 时间。
 
-## 5. 产物清单
+## 已知局限
+
+1. **有监督设定**，用了 PlantDoc 标签，与零样本 34.93% 不可互换。
+2. **只测了 @224 单分辨率**，Swin-T 在零样本下 @352 比 @224 高 2.16pp，
+   微调后若也走 @352 可能更高——未做。
+3. **4 轮不早停**，折 4 明显在第 3 轮后回落，若加早停均值可能再高 1pp 左右。
+4. **PlantDoc 只有 2920 张**，5 折每折训练 2331~2339 张，Swin-T 28M 参数下过拟合压力大，
+   真实田间场景（照片更多样）表现可能不如这个数字。
+5. **未做显著性检验**，虽然 5/5 折都提升、配对差 3.40pp 标准差远小于 42.12pp 均值，
+   结论稳健，但严格统计检验未做。
+6. **PlantDoc 标注本身有噪声**（原论文人工标注约 300 小时，仍存在类间混淆），
+   77.06% 里有一部分误差来自标注而非模型。
+
+## 产物
 
 | 路径 | 说明 |
 | --- | --- |
-| `kaggle/swin_finetune/run.py` | Swin-T 版 Kaggle kernel（含权重查找与缺失提示） |
-| `kaggle/swin_finetune/kernel-metadata.json` | kernel 元数据，`machine_shape: NvidiaTeslaT4` |
-| `ml/runs/swin_t_224_15ep/plantdoc_ft_cv_smoke.json` | 冒烟结果（脚本自动识别为 smoke 命名） |
+| `ml/runs/swin_t_224_15ep/plantdoc_ft_cv.json` | 五折完整结果（含逐折 history、零样本对照、配对差） |
+| `ml/runs/swin_t_224_15ep/plantdoc_ft_cv_smoke.json` | 冒烟结果（1 折 1 轮，仅验证管线） |
 | `ml/runs/swin_t_224_15ep/smoke_log.txt` | 冒烟完整日志 |
+| `kaggle/swin_finetune/run.py` | Kaggle kernel（含 `find_swin_ckpt()` 三级权重查找） |
+| `kaggle/swin_finetune/kernel-metadata.json` | kernel 元数据 |
+| `scripts/extract_kernel_json.py` | 从 kernel 日志的 JSON-lines 里提取 `ALL_RESULTS_JSON` 段 |
 | `ml/artifacts/plantdoc_finetune_swin.md` | 本文 |
 
-未改动的共享文件：`ml/src/finetune_plantdoc.py`、`ml/src/models.py`、
-`ml/src/data.py`、`ml/src/eval_crossdomain.py`、`ml/src/train_colab.py`。
-未执行任何 `git add` / `git commit`，也未执行 `kaggle kernels push`。
+## 复现
+
+```powershell
+# 本地（CPU 约 3 小时，GPU 约 16 分钟）
+$env:PYTHONUTF8=1
+cd "D:\Desktop\神经网络最终项目\ml"
+python src/finetune_plantdoc.py --run-dir runs/swin_t_224_15ep `
+    --folds 5 --epochs 4 --batch-size 64 --img-size 224 `
+    --lr-backbone 1e-4 --lr-head 1e-3 --seed 42 `
+    --num-workers 0 --out runs/swin_t_224_15ep/plantdoc_ft_cv.json
+
+# Kaggle（需先把 swin_t 的 best.pt 上传成独立私有 dataset）
+cd "D:\Desktop\神经网络最终项目"
+python -m kaggle kernels push -p kaggle/swin_finetune --accelerator NvidiaTeslaT4
+python -m kaggle kernels logs wangkaiyu66/plant-leaf-swin-finetune > _kaggle_out/swinft.log
+python scripts/extract_kernel_json.py _kaggle_out/swinft.log -o ml/runs/swin_t_224_15ep/plantdoc_ft_cv.json
+```
+
+**取结果的重要教训**：Kaggle 会把整个 kernel 输出目录打包成单个 `_output_.zip`，
+`kaggle kernels output --file-pattern` 对 zip 内部条目无效（会把 2670 张 PlantDoc 训练图一起下）。
+**要拿结构化结果就走 `kaggle kernels logs`**，把 JSON 打到 stdout 的 `ALL_RESULTS_JSON_BEGIN/END`
+之间，再本地解析——这条路径稳定且只几十 KB。
